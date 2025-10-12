@@ -17,6 +17,8 @@ struct SticksLayoutView: View {
     @State private var rightRemainder: Int = 0
     @State private var removedSticks: Int = 0
     @State private var centerSticks: Int = 0
+    @State private var stepCount: Int = 1 // 新增：记录当前轮次
+    @State private var sticksLeft: Int = 49 // 新增：当前剩余木棍数
 
     var body: some View {
         GeometryReader { geometry in
@@ -160,33 +162,31 @@ struct SticksLayoutView: View {
             .onTapGesture {
                 if !isSplit {
                     let minSplit = 1
-                    let maxSplit = totalSticks - 1
+                    let maxSplit = sticksLeft - 1
                     withAnimation(.easeInOut(duration: 0.6)) {
                         splitIndex = Int.random(in: minSplit...maxSplit)
                         isSplit = true
-                        // 计算左堆数量
                         leftCount = splitIndex ?? 0
                     }
-                    print("User tapped: splitIndex=\(splitIndex!), isSplit=\(isSplit), movedStick=\(movedStick), grouped=\(grouped)")
+                    print("第\(stepCount)轮：分堆 splitIndex=\(splitIndex!), isSplit=\(isSplit), movedStick=\(movedStick), grouped=\(grouped), sticksLeft=\(sticksLeft)")
                 } else if isSplit && !movedStick {
                     withAnimation(.easeInOut(duration: 0.6)) {
                         movedStick = true
-                        // 计算右堆数量
-                        rightCount = totalSticks - leftCount - 1 // 已移走一根
+                        rightCount = sticksLeft - leftCount - 1
                     }
-                    print("User tapped again: movedStick set to true, splitIndex=\(splitIndex!), isSplit=\(isSplit), grouped=\(grouped)")
+                    print("第\(stepCount)轮：移棍 movedStick set to true, splitIndex=\(splitIndex!), isSplit=\(isSplit), grouped=\(grouped), sticksLeft=\(sticksLeft)")
                 } else if isSplit && movedStick && !grouped {
                     withAnimation(.easeInOut(duration: 0.6)) {
                         grouped = true
-                        // 计算余数
                         leftRemainder = leftCount % 4 == 0 ? 4 : leftCount % 4
                         rightRemainder = rightCount % 4 == 0 ? 4 : rightCount % 4
                         removedSticks = leftRemainder + rightRemainder
-                        centerSticks = totalSticks - removedSticks - 1 // 再减去正上方那根
+                        centerSticks = sticksLeft - removedSticks - 1
+                        sticksLeft = centerSticks + 1 // 在分余数阶段更新 sticksLeft
                     }
-                    print("User tapped again: grouped set to true, splitIndex=\(splitIndex!), isSplit=\(isSplit), movedStick=\(movedStick)")
+                    print("第\(stepCount)轮：分余数 leftRemainder=\(leftRemainder), rightRemainder=\(rightRemainder), sticksLeft=\(sticksLeft)")
                 } else if isSplit && movedStick && grouped {
-                    print("红色余数数量: \(leftRemainder), 蓝色余数数量: \(rightRemainder), 当前平摊数量: \(centerSticks + 1)") // +1包含左下角那根
+                    print("第\(stepCount)轮：移除余数 红色余数数量: \(leftRemainder), 蓝色余数数量: \(rightRemainder), 当前平摊数量: \(centerSticks + 1), sticksLeft=\(sticksLeft)")
                     withAnimation(.easeInOut(duration: 0.6)) {
                         splitIndex = nil
                         isSplit = false
@@ -198,8 +198,15 @@ struct SticksLayoutView: View {
                         rightRemainder = 0
                         removedSticks = 0
                         centerSticks = 0
+                        if stepCount < 3 {
+                            stepCount += 1
+                        } else {
+                            print("三轮结束，可在此处处理最终结果")
+                            stepCount = 1 // 重置，允许重新开始
+                            sticksLeft = 49 // 重置为初始值
+                        }
                     }
-                    print("User tapped again: reset, splitIndex=\(splitIndex?.description ?? "nil"), isSplit=\(isSplit), movedStick=\(movedStick), grouped=\(grouped)")
+                    print("User tapped again: reset, splitIndex=\(splitIndex?.description ?? "nil"), isSplit=\(isSplit), movedStick=\(movedStick), grouped=\(grouped), stepCount=\(stepCount)")
                 }
             }
         }
