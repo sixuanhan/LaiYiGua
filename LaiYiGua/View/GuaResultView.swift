@@ -179,6 +179,7 @@ func getGuaURL(fullGua: String) -> URL {
 
 struct GuaResultView: View {
     let yao: [Int]
+    @Environment(\.dismiss) private var dismiss
     
     // 计算变爻信息
     private var changingYaoInfo: (count: Int, positions: [Int]) {
@@ -192,7 +193,8 @@ struct GuaResultView: View {
     }
     
     var body: some View {
-        VStack(spacing: 12) {
+        NavigationView {
+            VStack(spacing: 12) {
             let inner = Array(yao[0...2])
             let outer = Array(yao[3...5])
             let innerName = yaoToGuaName(inner)
@@ -291,6 +293,16 @@ struct GuaResultView: View {
             .padding(.top, 8)
         }
         .padding()
+        .navigationTitle("卦象结果")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("关闭") {
+                    dismiss()
+                }
+            }
+        }
+        }
     }
 }
 

@@ -6,7 +6,8 @@ import FirebaseAI
 
 final class DivinationViewModel: ObservableObject {
     @Published var question: String = ""
-    @Published var answer: String = ""
+    @Published var refinedQuestions: [String] = []
+    @Published var selectedQuestion: String = ""
     @Published var isLoading: Bool = false
     private var client: GenerativeModel?
 
@@ -19,31 +20,70 @@ final class DivinationViewModel: ObservableObject {
         client = ai.generativeModel(modelName: "gemini-2.0-flash")
     }
 
-    func divine() {
+    func refineQuestion() {
         guard let client = client else {
-            answer = "Error: Gemini client not initialized"
+            refinedQuestions = ["Error: Gemini client not initialized"]
             return
         }
         isLoading = true
         let prompt = """
-        你是一位精通周易的占卜师。请用周易卦象的方式，解答用户提出的问题：\n"
-        "问题：\"\(question)\"\n"
-        "请以简洁、专业的语气，结合卦象和易经原理，给出详细解读和建议。无需客套话。\n"
+        你是一位精通周易占卜的专家。请将用户的问题修正为更适合易经占卜的形式。
+        
+        好的占卜问题必须包含以下元素：
+        1. 主辞明确：事主是你自己，还是代某人筮问（通常是求卦者本人）
+        2. 动辞明确：事主到底想做什么事？
+        3. 时间地点：必要时要说清楚
+        4. 有自由意志的选择：最好以「我决定…」、「我想要…」为开头
+        5. 问题要具体明确，当事者要有所决定（可能决定，非最终决定）
+        
+        用户原问题："\(question)"
+        
+        请提供3个不同的修正版本，每个版本都要符合上述要求，格式如下：
+        
+        1. [修正问题1]
+        
+        2. [修正问题2]
+        
+        3. [修正问题3]
+        
+        只返回这3个修正问题，不要其他解释。
         """
         Task {
             do {
                 let response = try await client.generateContent(prompt)
+                let responseText = response.text ?? "未获得有效回复"
+                let questions = parseRefinedQuestions(from: responseText)
                 DispatchQueue.main.async {
-                    self.answer = response.text ?? "未获得有效回复"
+                    self.refinedQuestions = questions
                     self.isLoading = false
                 }
             } catch {
                 DispatchQueue.main.async {
-                    self.answer = "Error: \(error.localizedDescription)"
+                    self.refinedQuestions = ["Error: \(error.localizedDescription)"]
                     self.isLoading = false
                 }
             }
         }
+    }
+    
+    private func parseRefinedQuestions(from text: String) -> [String] {
+        let lines = text.components(separatedBy: .newlines)
+        var questions: [String] = []
+        
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            // 匹配 "1. 问题内容" 格式
+            if let regex = try? NSRegularExpression(pattern: "^\\d+\\.\\s*(.+)$"),
+               let match = regex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)),
+               let range = Range(match.range(at: 1), in: trimmed) {
+                let question = String(trimmed[range])
+                if !question.isEmpty {
+                    questions.append(question)
+                }
+            }
+        }
+        
+        return questions.isEmpty ? [text] : questions
     }
 }
 
@@ -51,34 +91,111 @@ struct DivinationView: View {
     @StateObject private var viewModel = DivinationViewModel()
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("占卜页面")
-                .font(.largeTitle)
-                .padding(.top)
-            TextField("请输入你想要占卜的问题", text: $viewModel.question)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding(.horizontal)
-            Button(action: {
-                viewModel.divine()
-            }) {
-                Text("占卜")
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.accentColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-            }
-            .padding(.horizontal)
-            if viewModel.isLoading {
-                ProgressView("正在生成占卜结果...")
-                    .padding()
-            } else if !viewModel.answer.isEmpty {
-                ScrollView {
-                    Text(viewModel.answer)
-                        .padding()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("问题修正")
+                    .font(.largeTitle)
+                    .padding(.top)
+                
+                // 占卜问题纲领
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("好的占卜问题必须包含：")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("• **主辞明确**：事主是你自己，还是代某人筮问（通常是求卦者本人）")
+                        Text("• **动辞明确**：事主到底想做什么事？")
+                        Text("• **时间地点**：必要时要说清楚")
+                        Text("• **有自由意志的选择**：最好以「我决定…」、「我想要…」为开头")
+                        Text("• **具体明确**：当事者要有所决定（可能决定，非最终决定）")
+                    }
+                    .font(.body)
                 }
+                .padding()
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(12)
+                .padding(.horizontal)
+                
+                // 输入问题
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("请输入你想要占卜的问题：")
+                        .font(.headline)
+                        .padding(.horizontal)
+                    
+                    TextField("例如：我最近在考虑换工作...", text: $viewModel.question, axis: .vertical)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .lineLimit(3...6)
+                        .padding(.horizontal)
+                }
+                
+                // 修正问题按钮
+                Button(action: {
+                    viewModel.refineQuestion()
+                }) {
+                    Text("修正问题")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(viewModel.question.isEmpty ? Color.gray : Color.orange)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
+                .disabled(viewModel.question.isEmpty)
+                .padding(.horizontal)
+                
+                // 加载状态
+                if viewModel.isLoading {
+                    ProgressView("正在修正问题...")
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                }
+                
+                // 修正后的问题选择
+                if !viewModel.refinedQuestions.isEmpty && !viewModel.isLoading {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("请选择一个修正后的问题：")
+                            .font(.headline)
+                            .padding(.horizontal)
+                        
+                        ForEach(Array(viewModel.refinedQuestions.enumerated()), id: \.offset) { index, question in
+                            Button(action: {
+                                viewModel.selectedQuestion = question
+                            }) {
+                                HStack {
+                                    Image(systemName: viewModel.selectedQuestion == question ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(viewModel.selectedQuestion == question ? .blue : .gray)
+                                    
+                                    Text(question)
+                                        .multilineTextAlignment(.leading)
+                                        .foregroundColor(.primary)
+                                    
+                                    Spacer()
+                                }
+                                .padding()
+                                .background(viewModel.selectedQuestion == question ? Color.blue.opacity(0.1) : Color.gray.opacity(0.05))
+                                .cornerRadius(8)
+                            }
+                            .padding(.horizontal)
+                        }
+                        
+                        // 占卜按钮
+                        if !viewModel.selectedQuestion.isEmpty {
+                            NavigationLink(destination: SticksLayoutView(question: viewModel.selectedQuestion)) {
+                                Text("开始占卜")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.accentColor)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 10)
+                        }
+                    }
+                }
+                
+                Spacer(minLength: 20)
             }
-            Spacer()
         }
     }
 }

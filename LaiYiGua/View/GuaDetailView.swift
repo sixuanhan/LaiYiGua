@@ -29,7 +29,6 @@ struct GuaDetailView: View {
         .navigationTitle(guaName)
         .task {
             await loadContent()
-            await loadInterpretation()
         }
     }
 
@@ -43,25 +42,38 @@ struct GuaDetailView: View {
                     self.content = content
                     self.yaoContents = yaos
                 }
+                // 在 content 和 yaoContents 更新后再加载解释
+                await loadInterpretation()
             } else {
-                self.content = "❌ 无法读取网页内容。"
-                self.yaoContents = [:]
+                DispatchQueue.main.async {
+                    self.content = "❌ 无法读取网页内容。"
+                    self.yaoContents = [:]
+                }
+                await loadInterpretation()
             }
         } catch {
-            self.content = "❌ 网络请求失败：\(error.localizedDescription)"
-            self.yaoContents = [:]
+            DispatchQueue.main.async {
+                self.content = "❌ 网络请求失败：\(error.localizedDescription)"
+                self.yaoContents = [:]
+            }
+            await loadInterpretation()
         }
     }
 
     func loadInterpretation() async {
+        // 获取当前的状态值
+        let currentContent = await MainActor.run { content }
+        let currentYaoContents = await MainActor.run { yaoContents }
+        
         let result = await InterpretationStrategy.getStrategy(
             changingYaoPositions: changingYaoPositions,
-            yaoContents: yaoContents,
-            content: content,
+            yaoContents: currentYaoContents,
+            content: currentContent,
             guaName: guaName,
             originalYao: originalYao
         )
-        DispatchQueue.main.async {
+        
+        await MainActor.run {
             self.interpretation = result
         }
     }

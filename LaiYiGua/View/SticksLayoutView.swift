@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SticksLayoutView: View {
+    let question: String
     @State private var splitIndex: Int? = nil
     @State private var isSplit: Bool = false
     @State private var movedStick: Bool = false
@@ -257,5 +258,5 @@ struct SticksLayoutView: View {
 }
 
 #Preview {
-    SticksLayoutView()
+    SticksLayoutView(question: "我想要在年底前是否应该换工作？")
 }

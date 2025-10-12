@@ -14,14 +14,19 @@ import CoreData
 struct ContentView: View {
     var body: some View {
         TabView {
-            DivinationView()
-                .tabItem {
-                    Label("占卜", systemImage: "sparkles")
-                }
-            HistoryView()
-                .tabItem {
-                    Label("历史记录", systemImage: "clock")
-                }
+            NavigationView {
+                DivinationView()
+            }
+            .tabItem {
+                Label("占卜", systemImage: "sparkles")
+            }
+            
+            NavigationView {
+                HistoryView()
+            }
+            .tabItem {
+                Label("历史记录", systemImage: "clock")
+            }
         }
     }
 }
