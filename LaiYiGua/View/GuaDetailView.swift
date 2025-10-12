@@ -75,13 +75,25 @@ struct GuaDetailView: View {
                 guaName: "1. 乾为天",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4103.html")!,
                 changingYaoPositions: [],
-                originalYao: [9, 9, 9, 9, 9, 9]
+                originalYao: [7,7,7,7,7,7]
             )
         }
         .tabItem {
             Text("0变爻")
         }
-        
+
+        NavigationStack {
+            GuaDetailView(
+                guaName: "2. 坤为地",
+                guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4105.html")!,
+                changingYaoPositions: [],
+                originalYao: [8,8,8,8,8,8]
+            )
+        }
+        .tabItem {
+            Text("0变爻")
+        }
+
         // 1个变爻
         NavigationStack {
             GuaDetailView(

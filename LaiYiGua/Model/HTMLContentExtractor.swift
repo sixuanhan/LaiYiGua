@@ -26,9 +26,31 @@ class HTMLContentExtractor {
     }
     
     static func extractMainContent(from html: String) -> String {
-        // 匹配从 "x卦原文" 到 "第X卦的哲学含义" 之间的内容（不包括结束标题）
-        let pattern = "(.{0,10}卦原文[\\s\\S]*?)第.*?卦的哲学含义"
-        return extractWithPattern(from: html, pattern: pattern) ?? "未找到指定内容段落。"
+        // 尝试多种模式来匹配不同页面结构
+        let patterns = [
+            // 原始模式：从 "x卦原文" 到 "第X卦的哲学含义"，考虑空白和HTML标签
+            "(.{0,10}卦原文[\\s\\S]*?)(?:<[^>]*>)?\\s*第.*?卦\\s*(?:<[^>]*>)?\\s*的\\s*(?:<[^>]*>)?\\s*哲学含义",
+            // 稍微宽松的模式：允许"哲学含义"前后有更多变化
+            "(.{0,10}卦原文[\\s\\S]*?)第.*?卦[\\s\\S]{0,20}哲学含义",
+            // 更宽松的备用模式：匹配到"第X卦"加任意内容，但要求包含"含义"
+            "(.{0,10}卦原文[\\s\\S]*?)(?=第\\d+卦[\\s\\S]{0,50}含义)",
+            // 备用模式：到HTML结构标记
+            "(.{0,10}卦原文[\\s\\S]*?)(?=<h[234]|<div class=\"next\")",
+            // 最后备用：简化的卦原文提取
+            "(卦原文[\\s\\S]*?)(?=第\\d+卦|<h[234])"
+        ]
+        
+        for pattern in patterns {
+            if let result = extractWithPattern(from: html, pattern: pattern) {
+                // 确保提取的内容不为空且有意义
+                let trimmed = result.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty && trimmed.count > 10 {
+                    return trimmed
+                }
+            }
+        }
+        
+        return "未找到指定内容段落。"
     }
     
     /// 从周易网页 HTML 中提取所有爻辞（每个爻位都尝试搜索"九"和"六"两种可能性）

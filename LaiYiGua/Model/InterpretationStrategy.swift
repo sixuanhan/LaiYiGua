@@ -104,7 +104,6 @@ class InterpretationStrategy {
             let changedYao = calculateChangedYao(originalYao: originalYao, changingPositions: changingYaoPositions)
             let changedGuaName = generateGuaName(from: changedYao)
             let changedYaoContents = await getChangedGuaYaoContents(changedGuaName)
-            
             let unchangedYaoContent = changedYaoContents[unchangedPosition] ?? "[变卦第\(unchangedPosition)爻爻辞加载中...]"
             
             return (
@@ -175,20 +174,6 @@ class InterpretationStrategy {
     private static func fetchGuaContent(from url: URL) async -> String {
         let html = await fetchHTML(from: url)
         return HTMLContentExtractor.extractMainContent(from: html)
-    }
-
-    // 从卦名生成URL
-    private static func getGuaURL(fullGua: String) -> URL {
-        // 提取数字前缀
-        let components = fullGua.components(separatedBy: ". ")
-        guard components.count >= 2,
-              let guaNumber = Int(components[0]) else {
-            return URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4103.html")!
-        }
-        
-        // 计算URL ID (基础4103加上卦的序号减1)
-        let urlId = 4103 + guaNumber - 1
-        return URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/\(urlId).html")!
     }
 }
 
