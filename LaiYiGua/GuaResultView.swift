@@ -189,8 +189,29 @@ func getFullGuaName(inner: String, outer: String) -> String {
     return arr.count > innerIdx ? arr[innerIdx] : "未知卦"
 }
 
+// 获取卦的详情链接URL
+func getGuaURL(fullGua: String) -> URL {
+    let guaName = fullGua.components(separatedBy: ".").last?.trimmingCharacters(in: .whitespaces) ?? fullGua
+    let url1 = guaLinks[guaName]
+    let url2 = guaLinks[fullGua]
+    let urlString = url1 ?? url2 ?? "https://www.zhouyi.cc"
+    return URL(string: urlString) ?? URL(string: "https://www.zhouyi.cc")!
+}
+
 struct GuaResultView: View {
     let yao: [Int]
+    
+    // 计算变爻信息
+    private var changingYaoInfo: (count: Int, positions: [Int]) {
+        var positions: [Int] = []
+        for (index, value) in yao.enumerated() {
+            if value == 6 || value == 9 {
+                positions.append(index + 1) // 从1开始计数
+            }
+        }
+        return (count: positions.count, positions: positions)
+    }
+    
     var body: some View {
         VStack(spacing: 12) {
             let inner = Array(yao[0...2])
@@ -198,6 +219,7 @@ struct GuaResultView: View {
             let innerName = yaoToGuaName(inner)
             let outerName = yaoToGuaName(outer)
             let fullGua = getFullGuaName(inner: innerName, outer: outerName)
+            let changingInfo = changingYaoInfo
 
             Text("\(fullGua)")
                 .font(.title)
@@ -224,33 +246,69 @@ struct GuaResultView: View {
             Text("内卦：\(innerName)  外卦：\(outerName)")
                 .font(.title2)
                 .padding(.top)
-            Button(action: {
-                let debugFullGua = fullGua
-                // 取卦名（去掉序号和空格）
-                let guaName = fullGua.components(separatedBy: ".").last?.trimmingCharacters(in: .whitespaces) ?? fullGua
-                let url1 = guaLinks[guaName]
-                let url2 = guaLinks[fullGua]
-                print("[DEBUG] fullGua=\(debugFullGua), guaName=\(guaName), url1=\(url1 ?? "nil"), url2=\(url2 ?? "nil")")
-                if let url = url1 ?? url2 {
-                    if let link = URL(string: url) {
-                        print("[DEBUG] Opening URL: \(link)")
-                        #if os(iOS)
-                        UIApplication.shared.open(link)
-                        #elseif os(macOS)
-                        NSWorkspace.shared.open(link)
-                        #endif
-                    } else {
-                        print("[DEBUG] URL string invalid: \(url)")
-                    }
-                } else {
-                    print("[DEBUG] No URL found for guaName: \(guaName) or fullGua: \(fullGua)")
-                }
-            }) {
-                Text("查看卦象详情")
-                    .font(.headline)
-                    .foregroundColor(.blue)
-                    .padding(.top, 8)
+            
+            // 显示变爻信息
+            if changingInfo.count > 0 {
+                Text("变爻：\(changingInfo.count)个 (第\(changingInfo.positions.map(String.init).joined(separator: "、"))爻)")
+                    .font(.body)
+                    .foregroundColor(.orange)
+                    .padding(.top, 4)
+            } else {
+                Text("无变爻")
+                    .font(.body)
+                    .foregroundColor(.gray)
+                    .padding(.top, 4)
             }
+            
+            HStack(spacing: 20) {
+                NavigationLink(destination: GuaDetailView(
+                    guaName: fullGua,
+                    guaURL: getGuaURL(fullGua: fullGua),
+                    changingYaoPositions: changingInfo.positions
+                )) {
+                    Text("解卦")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Color.blue)
+                        .cornerRadius(8)
+                }
+                
+                Button(action: {
+                    let debugFullGua = fullGua
+                    // 取卦名（去掉序号和空格）
+                    let guaName = fullGua.components(separatedBy: ".").last?.trimmingCharacters(in: .whitespaces) ?? fullGua
+                    let url1 = guaLinks[guaName]
+                    let url2 = guaLinks[fullGua]
+                    print("[DEBUG] fullGua=\(debugFullGua), guaName=\(guaName), url1=\(url1 ?? "nil"), url2=\(url2 ?? "nil")")
+                    if let url = url1 ?? url2 {
+                        if let link = URL(string: url) {
+                            print("[DEBUG] Opening URL: \(link)")
+                            #if os(iOS)
+                            UIApplication.shared.open(link)
+                            #elseif os(macOS)
+                            NSWorkspace.shared.open(link)
+                            #endif
+                        } else {
+                            print("[DEBUG] URL string invalid: \(url)")
+                        }
+                    } else {
+                        print("[DEBUG] No URL found for guaName: \(guaName) or fullGua: \(fullGua)")
+                    }
+                }) {
+                    Text("查看卦象详情")
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.blue, lineWidth: 2)
+                        )
+                }
+            }
+            .padding(.top, 8)
         }
         .padding()
     }
@@ -259,7 +317,7 @@ struct GuaResultView: View {
 #if DEBUG
 struct GuaResultView_Previews: PreviewProvider {
     static var previews: some View {
-        // 示例卦：[7,6,9,8,7,7]，内卦离，外卦巽
+        // 示例卦：[7,6,9,8,7,7]，内卦离，外卦巽，第2和第3爻为变爻
         GuaResultView(yao: [7,6,9,8,7,7])
     }
 }
