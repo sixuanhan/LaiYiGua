@@ -168,27 +168,6 @@ let guaLinks: [String: String] = [
     "坤为地": "https://www.zhouyi.cc/zhouyi/yijing64/4105.html",
 ]
 
-// 爻转卦码（下到上）
-func yaoToGuaCode(_ yao: [Int]) -> [Int] {
-    return yao.map { $0 == 6 || $0 == 8 ? 0 : 1 }
-}
-
-// 爻转卦名（仅支持八卦）
-func yaoToGuaName(_ yao: [Int]) -> String {
-    let code = yaoToGuaCode(yao)
-    // 八卦码：坤[0,0,0]、艮[0,0,1]、坎[0,1,0]、巽[0,1,1]、震[1,0,0]、离[1,0,1]、兑[1,1,0]、乾[1,1,1]
-    let guaNames = ["坤", "艮", "坎", "巽", "震", "离", "兑", "乾"]
-    let idx = code[0]*4 + code[1]*2 + code[2]
-    return guaNames[idx]
-}
-
-// 通过内外卦名查找六十四卦名和序号
-func getFullGuaName(inner: String, outer: String) -> String {
-    let innerIdx = ["坤", "艮", "坎", "巽", "震", "离", "兑", "乾"].firstIndex(of: inner) ?? 0
-    let arr = guaFullMap[outer] ?? []
-    return arr.count > innerIdx ? arr[innerIdx] : "未知卦"
-}
-
 // 获取卦的详情链接URL
 func getGuaURL(fullGua: String) -> URL {
     let guaName = fullGua.components(separatedBy: ".").last?.trimmingCharacters(in: .whitespaces) ?? fullGua
@@ -264,7 +243,8 @@ struct GuaResultView: View {
                 NavigationLink(destination: GuaDetailView(
                     guaName: fullGua,
                     guaURL: getGuaURL(fullGua: fullGua),
-                    changingYaoPositions: changingInfo.positions
+                    changingYaoPositions: changingInfo.positions,
+                    originalYao: yao
                 )) {
                     Text("解卦")
                         .font(.headline)

@@ -4,26 +4,16 @@ struct GuaDetailView: View {
     let guaName: String
     let guaURL: URL
     let changingYaoPositions: [Int]
+    let originalYao: [Int]
 
     @State private var content: String = "加载中..."
     @State private var yaoContents: [Int: String] = [:]
+    @State private var interpretation: (strategy: String, content: String) = ("策略加载中...", "内容加载中...")
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // 显示变爻信息
-                ChangingYaoInfoView(changingYaoPositions: changingYaoPositions)
-                
-                Divider()
-                
                 // 解卦策略部分
-                let interpretation = InterpretationStrategy.getStrategy(
-                    changingYaoPositions: changingYaoPositions,
-                    yaoContents: yaoContents,
-                    content: content,
-                    guaName: guaName
-                )
-                
                 InterpretationStrategyView(
                     strategy: interpretation.strategy,
                     content: interpretation.content
@@ -39,6 +29,7 @@ struct GuaDetailView: View {
         .navigationTitle(guaName)
         .task {
             await loadContent()
+            await loadInterpretation()
         }
     }
 
@@ -61,6 +52,19 @@ struct GuaDetailView: View {
             self.yaoContents = [:]
         }
     }
+
+    func loadInterpretation() async {
+        let result = await InterpretationStrategy.getStrategy(
+            changingYaoPositions: changingYaoPositions,
+            yaoContents: yaoContents,
+            content: content,
+            guaName: guaName,
+            originalYao: originalYao
+        )
+        DispatchQueue.main.async {
+            self.interpretation = result
+        }
+    }
 }
 
 #Preview("变爻测试") {
@@ -70,7 +74,8 @@ struct GuaDetailView: View {
             GuaDetailView(
                 guaName: "1. 乾为天",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4103.html")!,
-                changingYaoPositions: []
+                changingYaoPositions: [],
+                originalYao: [9, 9, 9, 9, 9, 9]
             )
         }
         .tabItem {
@@ -82,7 +87,8 @@ struct GuaDetailView: View {
             GuaDetailView(
                 guaName: "37. 风火家人",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4176.html")!,
-                changingYaoPositions: [3]
+                changingYaoPositions: [3],
+                originalYao: [9, 6, 9, 9, 8, 9]
             )
         }
         .tabItem {
@@ -94,7 +100,8 @@ struct GuaDetailView: View {
             GuaDetailView(
                 guaName: "37. 风火家人",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4176.html")!,
-                changingYaoPositions: [2, 5]
+                changingYaoPositions: [2, 5],
+                originalYao: [9, 6, 9, 9, 6, 9]
             )
         }
         .tabItem {
@@ -106,7 +113,8 @@ struct GuaDetailView: View {
             GuaDetailView(
                 guaName: "8. 水地比",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4111.html")!,
-                changingYaoPositions: [1, 3, 6]
+                changingYaoPositions: [1, 3, 6],
+                originalYao: [6, 8, 9, 8, 8, 9]
             )
         }
         .tabItem {
@@ -118,7 +126,8 @@ struct GuaDetailView: View {
             GuaDetailView(
                 guaName: "29. 坎为水",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4168.html")!,
-                changingYaoPositions: [1, 2, 4, 5]
+                changingYaoPositions: [1, 2, 4, 5],
+                originalYao: [6, 9, 8, 6, 9, 8]
             )
         }
         .tabItem {
@@ -130,7 +139,8 @@ struct GuaDetailView: View {
             GuaDetailView(
                 guaName: "2. 坤为地",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4105.html")!,
-                changingYaoPositions: [1, 2, 3, 4, 6]
+                changingYaoPositions: [1, 2, 3, 4, 6],
+                originalYao: [6, 6, 6, 6, 8, 6]
             )
         }
         .tabItem {
@@ -142,7 +152,8 @@ struct GuaDetailView: View {
             GuaDetailView(
                 guaName: "1. 乾为天",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4103.html")!,
-                changingYaoPositions: [1, 2, 3, 4, 5, 6]
+                changingYaoPositions: [1, 2, 3, 4, 5, 6],
+                originalYao: [9, 9, 9, 9, 9, 9]
             )
         }
         .tabItem {
@@ -154,7 +165,8 @@ struct GuaDetailView: View {
             GuaDetailView(
                 guaName: "2. 坤为地",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4105.html")!,
-                changingYaoPositions: [1, 2, 3, 4, 5, 6]
+                changingYaoPositions: [1, 2, 3, 4, 5, 6],
+                originalYao: [6, 6, 6, 6, 6, 6]
             )
         }
         .tabItem {
@@ -166,7 +178,8 @@ struct GuaDetailView: View {
             GuaDetailView(
                 guaName: "37. 风火家人",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4176.html")!,
-                changingYaoPositions: [1, 2, 3, 4, 5, 6]
+                changingYaoPositions: [1, 2, 3, 4, 5, 6],
+                originalYao: [9, 6, 9, 9, 8, 9]
             )
         }
         .tabItem {
