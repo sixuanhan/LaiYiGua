@@ -12,6 +12,8 @@ import CoreData
 // ContentView 可暂时移除或保留做后续扩展
 
 struct ContentView: View {
+    @StateObject private var recordManager = DivinationRecordManager()
+    
     var body: some View {
         TabView {
             NavigationView {
@@ -28,6 +30,7 @@ struct ContentView: View {
                 Label("历史记录", systemImage: "clock")
             }
         }
+        .environmentObject(recordManager)
     }
 }
 

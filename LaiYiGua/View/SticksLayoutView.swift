@@ -251,7 +251,7 @@ struct SticksLayoutView: View {
             }
             // 展示卦结果页面
             .sheet(isPresented: $showGuaResult) {
-                GuaResultView(yao: yaoList)
+                GuaResultView(yao: yaoList, question: question)
             }
         }
     }

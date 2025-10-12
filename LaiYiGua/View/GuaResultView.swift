@@ -179,6 +179,7 @@ func getGuaURL(fullGua: String) -> URL {
 
 struct GuaResultView: View {
     let yao: [Int]
+    let question: String
     @Environment(\.dismiss) private var dismiss
     
     // 计算变爻信息
@@ -246,7 +247,8 @@ struct GuaResultView: View {
                     guaName: fullGua,
                     guaURL: getGuaURL(fullGua: fullGua),
                     changingYaoPositions: changingInfo.positions,
-                    originalYao: yao
+                    originalYao: yao,
+                    question: question
                 )) {
                     Text("解卦")
                         .font(.headline)
@@ -310,7 +312,7 @@ struct GuaResultView: View {
 struct GuaResultView_Previews: PreviewProvider {
     static var previews: some View {
         // 示例卦：[7,6,9,8,7,7]，内卦离，外卦巽，第2和第3爻为变爻
-        GuaResultView(yao: [7,6,9,8,7,7])
+        GuaResultView(yao: [7,6,9,8,7,7], question: "我是否应该在年底前换工作？")
     }
 }
 #endif

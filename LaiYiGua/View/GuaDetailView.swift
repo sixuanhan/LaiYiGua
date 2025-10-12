@@ -5,10 +5,14 @@ struct GuaDetailView: View {
     let guaURL: URL
     let changingYaoPositions: [Int]
     let originalYao: [Int]
+    let question: String
 
     @State private var content: String = "加载中..."
     @State private var yaoContents: [Int: String] = [:]
     @State private var interpretation: (strategy: String, content: String) = ("策略加载中...", "内容加载中...")
+    @State private var showSaveAlert = false
+    @EnvironmentObject private var recordManager: DivinationRecordManager
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ScrollView {
@@ -27,6 +31,19 @@ struct GuaDetailView: View {
             .padding()
         }
         .navigationTitle(guaName)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("保存") {
+                    saveRecord()
+                }
+                .disabled(interpretation.content == "内容加载中..." || content == "加载中...")
+            }
+        }
+        .alert("保存成功", isPresented: $showSaveAlert) {
+            Button("确定") { }
+        } message: {
+            Text("占卜记录已保存到历史页面")
+        }
         .task {
             await loadContent()
         }
@@ -77,6 +94,20 @@ struct GuaDetailView: View {
             self.interpretation = result
         }
     }
+    
+    func saveRecord() {
+        let record = DivinationRecord(
+            question: question,
+            guaName: guaName,
+            guaURL: guaURL,
+            originalYao: originalYao,
+            changingYaoPositions: changingYaoPositions,
+            interpretation: interpretation.content,
+            strategy: interpretation.strategy
+        )
+        recordManager.saveRecord(record)
+        showSaveAlert = true
+    }
 }
 
 #Preview("变爻测试") {
@@ -87,7 +118,8 @@ struct GuaDetailView: View {
                 guaName: "1. 乾为天",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4103.html")!,
                 changingYaoPositions: [],
-                originalYao: [7,7,7,7,7,7]
+                originalYao: [7,7,7,7,7,7],
+                question: "我是否应该在年底前换工作？"
             )
         }
         .tabItem {
@@ -99,7 +131,8 @@ struct GuaDetailView: View {
                 guaName: "2. 坤为地",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4105.html")!,
                 changingYaoPositions: [],
-                originalYao: [8,8,8,8,8,8]
+                originalYao: [8,8,8,8,8,8],
+                question: "我想要投资房产是否合适？"
             )
         }
         .tabItem {
@@ -112,7 +145,8 @@ struct GuaDetailView: View {
                 guaName: "37. 风火家人",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4176.html")!,
                 changingYaoPositions: [3],
-                originalYao: [9, 6, 9, 9, 8, 9]
+                originalYao: [9, 6, 9, 9, 8, 9],
+                question: "我决定与家人和解，时机是否合适？"
             )
         }
         .tabItem {
@@ -125,7 +159,8 @@ struct GuaDetailView: View {
                 guaName: "37. 风火家人",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4176.html")!,
                 changingYaoPositions: [2, 5],
-                originalYao: [9, 6, 9, 9, 6, 9]
+                originalYao: [9, 6, 9, 9, 6, 9],
+                question: "我想要调整家庭关系，应该采取什么策略？"
             )
         }
         .tabItem {
@@ -138,7 +173,8 @@ struct GuaDetailView: View {
                 guaName: "8. 水地比",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4111.html")!,
                 changingYaoPositions: [1, 3, 6],
-                originalYao: [6, 8, 9, 8, 8, 9]
+                originalYao: [6, 8, 9, 8, 8, 9],
+                question: "我决定与朋友合作创业是否明智？"
             )
         }
         .tabItem {
@@ -151,7 +187,8 @@ struct GuaDetailView: View {
                 guaName: "29. 坎为水",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4168.html")!,
                 changingYaoPositions: [1, 2, 4, 5],
-                originalYao: [6, 9, 8, 6, 9, 8]
+                originalYao: [6, 9, 8, 6, 9, 8],
+                question: "我想要度过目前的困难时期，需要采取什么行动？"
             )
         }
         .tabItem {
@@ -164,7 +201,8 @@ struct GuaDetailView: View {
                 guaName: "2. 坤为地",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4105.html")!,
                 changingYaoPositions: [1, 2, 3, 4, 6],
-                originalYao: [6, 6, 6, 6, 8, 6]
+                originalYao: [6, 6, 6, 6, 8, 6],
+                question: "我决定保持谦逊态度面对当前挑战是否正确？"
             )
         }
         .tabItem {
@@ -177,7 +215,8 @@ struct GuaDetailView: View {
                 guaName: "1. 乾为天",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4103.html")!,
                 changingYaoPositions: [1, 2, 3, 4, 5, 6],
-                originalYao: [9, 9, 9, 9, 9, 9]
+                originalYao: [9, 9, 9, 9, 9, 9],
+                question: "我想要在事业上取得突破性进展是否合适？"
             )
         }
         .tabItem {
@@ -190,7 +229,8 @@ struct GuaDetailView: View {
                 guaName: "2. 坤为地",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4105.html")!,
                 changingYaoPositions: [1, 2, 3, 4, 5, 6],
-                originalYao: [6, 6, 6, 6, 6, 6]
+                originalYao: [6, 6, 6, 6, 6, 6],
+                question: "我决定以柔克刚的方式处理当前局面是否明智？"
             )
         }
         .tabItem {
@@ -203,11 +243,13 @@ struct GuaDetailView: View {
                 guaName: "37. 风火家人",
                 guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4176.html")!,
                 changingYaoPositions: [1, 2, 3, 4, 5, 6],
-                originalYao: [9, 6, 9, 9, 8, 9]
+                originalYao: [9, 6, 9, 9, 8, 9],
+                question: "我想要彻底改变家庭现状，时机是否成熟？"
             )
         }
         .tabItem {
             Text("6变爻(其他)")
         }
     }
+    .environmentObject(DivinationRecordManager())
 }
