@@ -19,6 +19,8 @@ struct SticksLayoutView: View {
     @State private var centerSticks: Int = 0
     @State private var stepCount: Int = 1 // 新增：记录当前轮次
     @State private var sticksLeft: Int = 49 // 新增：当前剩余木棍数
+    @State private var yaoList: [Int] = [] // 新增：记录每轮生成的爻
+    @State private var showGuaResult: Bool = false // 新增：控制跳转到卦展示页面
 
     var body: some View {
         GeometryReader { geometry in
@@ -39,9 +41,8 @@ struct SticksLayoutView: View {
                 }
                 // 分组显示
                 if let split = splitIndex, isSplit, grouped {
-                    // 左堆分组
+                    // 步骤3：分组并显示余数
                     let leftGroups = leftRemainder == 4 ? leftCount / 4 - 1 : leftCount / 4
-                    // 右堆分组
                     let rightGroups = rightRemainder == 4 ? rightCount / 4 - 1 : rightCount / 4
                     HStack(alignment: .bottom, spacing: geometry.size.width * 0.25) { // 用屏幕宽度控制左右堆间距
                         // 左堆
@@ -104,6 +105,7 @@ struct SticksLayoutView: View {
                     .frame(width: geometry.size.width * 0.8, height: geometry.size.height * 0.7)
                     .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
                 } else if let split = splitIndex, isSplit, grouped, movedStick {
+                    // 步骤4：移除余数后平摊（仅第一、二轮显示，第三轮不显示此步骤）
                     VStack {
                         Spacer()
                         HStack(spacing: 2) {
@@ -114,12 +116,14 @@ struct SticksLayoutView: View {
                                     .cornerRadius(3)
                                     .shadow(radius: 2)
                             }
-                            // 加上左下角那根
-                            Rectangle()
-                                .fill(Color.brown)
-                                .frame(width: 10, height: 150)
-                                .cornerRadius(3)
-                                .shadow(radius: 2)
+                            // 前两轮加上左下角那根
+                            if stepCount < 3 {
+                                Rectangle()
+                                    .fill(Color.brown)
+                                    .frame(width: 10, height: 150)
+                                    .cornerRadius(3)
+                                    .shadow(radius: 2)
+                            }
                         }
                         Spacer()
                     }
@@ -176,38 +180,77 @@ struct SticksLayoutView: View {
                     }
                     print("第\(stepCount)轮：移棍 movedStick set to true, splitIndex=\(splitIndex!), isSplit=\(isSplit), grouped=\(grouped), sticksLeft=\(sticksLeft)")
                 } else if isSplit && movedStick && !grouped {
+                    // 步骤2：移出一根到左下角
                     withAnimation(.easeInOut(duration: 0.6)) {
                         grouped = true
                         leftRemainder = leftCount % 4 == 0 ? 4 : leftCount % 4
                         rightRemainder = rightCount % 4 == 0 ? 4 : rightCount % 4
                         removedSticks = leftRemainder + rightRemainder
-                        centerSticks = sticksLeft - removedSticks - 1
-                        sticksLeft = centerSticks + 1 // 在分余数阶段更新 sticksLeft
+                        // 前两轮 sticksLeft = centerSticks（不加左下角那根）
+                        if stepCount < 3 {
+                            centerSticks = sticksLeft - removedSticks - 1
+                            sticksLeft = centerSticks // 不加左下角那根
+                        } else {
+                            centerSticks = sticksLeft - removedSticks - 1
+                            // 第三轮 sticksLeft 不再更新，直接进入爻计算
+                        }
                     }
                     print("第\(stepCount)轮：分余数 leftRemainder=\(leftRemainder), rightRemainder=\(rightRemainder), sticksLeft=\(sticksLeft)")
                 } else if isSplit && movedStick && grouped {
-                    print("第\(stepCount)轮：移除余数 红色余数数量: \(leftRemainder), 蓝色余数数量: \(rightRemainder), 当前平摊数量: \(centerSticks + 1), sticksLeft=\(sticksLeft)")
-                    withAnimation(.easeInOut(duration: 0.6)) {
-                        splitIndex = nil
-                        isSplit = false
-                        movedStick = false
-                        grouped = false
-                        leftCount = 0
-                        rightCount = 0
-                        leftRemainder = 0
-                        rightRemainder = 0
-                        removedSticks = 0
-                        centerSticks = 0
-                        if stepCount < 3 {
+                    // 步骤4：移除余数（前两轮），第三轮生成爻
+                    if stepCount < 3 {
+                        print("第\(stepCount)轮：移除余数 红色余数数量: \(leftRemainder), 蓝色余数数量: \(rightRemainder), 当前平摊数量: \(centerSticks), sticksLeft=\(sticksLeft)")
+                        withAnimation(.easeInOut(duration: 0.6)) {
+                            splitIndex = nil
+                            isSplit = false
+                            movedStick = false
+                            grouped = false
+                            leftCount = 0
+                            rightCount = 0
+                            leftRemainder = 0
+                            rightRemainder = 0
+                            removedSticks = 0
+                            centerSticks = 0
                             stepCount += 1
-                        } else {
-                            print("三轮结束，可在此处处理最终结果")
-                            stepCount = 1 // 重置，允许重新开始
-                            sticksLeft = 49 // 重置为初始值
+                        }
+                        print("User tapped again: reset, splitIndex=\(splitIndex?.description ?? "nil"), isSplit=\(isSplit), movedStick=\(movedStick), grouped=\(grouped), stepCount=\(stepCount)")
+                    } else {
+                        // 步骤5：第三轮只记录爻，不做移除余数操作
+                        let leftGroups = leftRemainder == 4 ? leftCount / 4 - 1 : leftCount / 4
+                        let rightGroups = rightRemainder == 4 ? rightCount / 4 - 1 : rightCount / 4
+                        let yao = leftGroups + rightGroups
+                        yaoList.append(yao)
+                        print("第3轮结束，生成爻: \(yao)，当前所有爻: \(yaoList)")
+                        withAnimation(.easeInOut(duration: 0.6)) {
+                            splitIndex = nil
+                            isSplit = false
+                            movedStick = false
+                            grouped = false
+                            leftCount = 0
+                            rightCount = 0
+                            leftRemainder = 0
+                            rightRemainder = 0
+                            removedSticks = 0
+                            centerSticks = 0
+                            stepCount = 1
+                            sticksLeft = 49 // 完全重置
+                        }
+                        print("三轮结束，已重置，准备生成下一个爻。当前所有爻: \(yaoList)")
+                        // 如果已生成6个爻，可在此处处理最终结果
+                        if yaoList.count == 6 {
+                            print("全部6个爻生成完毕: \(yaoList)")
+                            // 跳转到卦展示页面
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                // 这里假设用 NavigationLink 或 sheet 展示结果
+                                showGuaResult = true
+                            }
                         }
                     }
-                    print("User tapped again: reset, splitIndex=\(splitIndex?.description ?? "nil"), isSplit=\(isSplit), movedStick=\(movedStick), grouped=\(grouped), stepCount=\(stepCount)")
                 }
+            }
+            // 展示卦结果页面
+            .sheet(isPresented: $showGuaResult) {
+                GuaResultView(yao: yaoList)
             }
         }
     }
