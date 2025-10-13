@@ -180,6 +180,13 @@ func getGuaURL(fullGua: String) -> URL {
 struct GuaResultView: View {
     let yao: [Int]
     let question: String
+    let onSaveAndExit: (() -> Void)?
+    
+    init(yao: [Int], question: String, onSaveAndExit: (() -> Void)? = nil) {
+        self.yao = yao
+        self.question = question
+        self.onSaveAndExit = onSaveAndExit
+    }
     @Environment(\.dismiss) private var dismiss
     
     // 计算变爻信息
@@ -248,8 +255,10 @@ struct GuaResultView: View {
                     guaURL: getGuaURL(fullGua: fullGua),
                     changingYaoPositions: changingInfo.positions,
                     originalYao: yao,
-                    question: question
-                )) {
+                    question: question,
+                    onSaveAndExit: onSaveAndExit
+                )
+                .toolbar(.hidden, for: .tabBar)) {
                     Text("解卦")
                         .font(.headline)
                         .foregroundColor(.white)
@@ -297,13 +306,6 @@ struct GuaResultView: View {
         .padding()
         .navigationTitle("卦象结果")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button("关闭") {
-                    dismiss()
-                }
-            }
-        }
         }
     }
 }

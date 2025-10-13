@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SticksLayoutView: View {
     let question: String
+    @EnvironmentObject private var navigationManager: NavigationManager
     @State private var splitIndex: Int? = nil
     @State private var isSplit: Bool = false
     @State private var movedStick: Bool = false
@@ -21,7 +22,7 @@ struct SticksLayoutView: View {
     @State private var stepCount: Int = 1 // 新增：记录当前轮次
     @State private var sticksLeft: Int = 49 // 新增：当前剩余木棍数
     @State private var yaoList: [Int] = [] // 新增：记录每轮生成的爻
-    @State private var showGuaResult: Bool = false // 新增：控制跳转到卦展示页面
+    @State private var navigateToResult: Bool = false // 新增：控制跳转到卦展示页面
     // 拖拽相关状态
     @State private var isDragging: Bool = false
     @State private var dragPosition: CGPoint = .zero
@@ -92,6 +93,59 @@ struct SticksLayoutView: View {
                     }
                     .padding(.top, 60)
                 }
+                
+                // 右下角显示当前卦相
+                if !yaoList.isEmpty {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("当前卦相 (\(yaoList.count)/6)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        // 显示已生成的爻（从下往上，所以最新生成的爻显示在上方）
+                        VStack(spacing: 2) {
+                            // 显示未生成的爻位（用虚线表示，在上方）
+                            ForEach(0..<(6 - yaoList.count), id: \.self) { _ in
+                                Rectangle()
+                                    .stroke(Color.gray.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [2, 2]))
+                                    .frame(width: 34, height: 3)
+                            }
+                            
+                            // 显示已生成的爻（最后生成的在上方，第一个生成的在下方）
+                            ForEach(yaoList.indices.reversed(), id: \.self) { index in
+                                let yao = yaoList[index]
+                                HStack(spacing: 2) {
+                                    if yao == 6 || yao == 8 { // 阴爻
+                                        Rectangle()
+                                            .fill(Color.primary)
+                                            .frame(width: 15, height: 3)
+                                        Rectangle()
+                                            .fill(Color.clear)
+                                            .frame(width: 4, height: 3)
+                                        Rectangle()
+                                            .fill(Color.primary)
+                                            .frame(width: 15, height: 3)
+                                    } else { // 阳爻 (7, 9)
+                                        Rectangle()
+                                            .fill(Color.primary)
+                                            .frame(width: 34, height: 3)
+                                    }
+                                }
+                                .overlay(
+                                    // 变爻标记
+                                    (yao == 6 || yao == 9) ? Circle()
+                                        .fill(Color.red)
+                                        .frame(width: 6, height: 6) : nil
+                                )
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color.white.opacity(0.9))
+                    .cornerRadius(8)
+                    .shadow(radius: 2)
+                    .position(x: geometry.size.width - 70, y: geometry.size.height - 100)
+                }
+                
                 // 居中横在页面上方的木棍
                 StickView()
                     .frame(width: geometry.size.width * 0.6, height: 18)
@@ -291,10 +345,23 @@ struct SticksLayoutView: View {
                 }
             }
         }
-        // 展示卦结果页面
-        .sheet(isPresented: $showGuaResult) {
-            GuaResultView(yao: yaoList, question: question)
-        }
+        .background(
+            NavigationLink(
+                destination: GuaResultView(
+                    yao: yaoList, 
+                    question: question,
+                    onSaveAndExit: {
+                        navigationManager.switchToHistoryTab()
+                    }
+                )
+                .navigationBarBackButtonHidden(true)
+                .toolbar(.hidden, for: .tabBar),
+                isActive: $navigateToResult
+            ) {
+                EmptyView()
+            }
+            .hidden()
+        )
     }
     
     private func handleTapGesture() {
@@ -370,8 +437,7 @@ struct SticksLayoutView: View {
                     print("全部6个爻生成完毕: \(yaoList)")
                     // 跳转到卦展示页面
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        // 这里假设用 NavigationLink 或 sheet 展示结果
-                        showGuaResult = true
+                        navigateToResult = true
                     }
                 }
             }
@@ -381,4 +447,5 @@ struct SticksLayoutView: View {
 
 #Preview {
     SticksLayoutView(question: "我想要在年底前是否应该换工作？")
+        .environmentObject(NavigationManager(switchToHistoryTab: {}))
 }

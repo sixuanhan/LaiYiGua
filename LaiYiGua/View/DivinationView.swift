@@ -89,6 +89,11 @@ final class DivinationViewModel: ObservableObject {
 
 struct DivinationView: View {
     @StateObject private var viewModel = DivinationViewModel()
+    @Binding var shouldReset: Bool
+    
+    init(shouldReset: Binding<Bool> = .constant(false)) {
+        self._shouldReset = shouldReset
+    }
 
     var body: some View {
         ScrollView {
@@ -184,7 +189,8 @@ struct DivinationView: View {
                         
                         // 占卜按钮
                         if !viewModel.selectedQuestion.isEmpty {
-                            NavigationLink(destination: SticksLayoutView(question: viewModel.selectedQuestion)) {
+                            NavigationLink(destination: SticksLayoutView(question: viewModel.selectedQuestion)
+                                .toolbar(.hidden, for: .tabBar)) {
                                 Text("开始占卜")
                                     .frame(maxWidth: .infinity)
                                     .padding()
@@ -199,6 +205,15 @@ struct DivinationView: View {
                 }
                 
                 Spacer(minLength: 20)
+            }
+        }
+        .onChange(of: shouldReset) { reset in
+            if reset {
+                // 重置所有状态
+                viewModel.question = ""
+                viewModel.refinedQuestions = []
+                viewModel.selectedQuestion = ""
+                shouldReset = false
             }
         }
     }

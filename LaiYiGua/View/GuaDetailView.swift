@@ -7,6 +7,7 @@ struct GuaDetailView: View {
     let originalYao: [Int]
     let question: String
     let showSaveButton: Bool
+    let onSaveAndExit: (() -> Void)?
 
     @State private var content: String = "加载中..."
     @State private var yaoContents: [Int: String] = [:]
@@ -16,23 +17,25 @@ struct GuaDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     // 便利初始化器，用于新的占卜结果（需要保存按钮）
-    init(guaName: String, guaURL: URL, changingYaoPositions: [Int], originalYao: [Int], question: String) {
+    init(guaName: String, guaURL: URL, changingYaoPositions: [Int], originalYao: [Int], question: String, onSaveAndExit: (() -> Void)? = nil) {
         self.guaName = guaName
         self.guaURL = guaURL
         self.changingYaoPositions = changingYaoPositions
         self.originalYao = originalYao
         self.question = question
         self.showSaveButton = true
+        self.onSaveAndExit = onSaveAndExit
     }
     
     // 完整初始化器，用于历史记录（可选择是否显示保存按钮）
-    init(guaName: String, guaURL: URL, changingYaoPositions: [Int], originalYao: [Int], question: String, showSaveButton: Bool) {
+    init(guaName: String, guaURL: URL, changingYaoPositions: [Int], originalYao: [Int], question: String, showSaveButton: Bool, onSaveAndExit: (() -> Void)? = nil) {
         self.guaName = guaName
         self.guaURL = guaURL
         self.changingYaoPositions = changingYaoPositions
         self.originalYao = originalYao
         self.question = question
         self.showSaveButton = showSaveButton
+        self.onSaveAndExit = onSaveAndExit
     }
 
     var body: some View {
@@ -55,7 +58,7 @@ struct GuaDetailView: View {
         .toolbar {
             if showSaveButton {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("保存") {
+                    Button(onSaveAndExit != nil ? "保存并退出" : "保存") {
                         saveRecord()
                     }
                     .disabled(interpretation.content == "内容加载中..." || content == "加载中...")
@@ -129,7 +132,14 @@ struct GuaDetailView: View {
             strategy: interpretation.strategy
         )
         recordManager.saveRecord(record)
-        showSaveAlert = true
+        
+        if let onSaveAndExit = onSaveAndExit {
+            // 如果有保存并退出回调，直接执行
+            onSaveAndExit()
+        } else {
+            // 否则显示保存成功提示
+            showSaveAlert = true
+        }
     }
 }
 

@@ -13,15 +13,18 @@ import CoreData
 
 struct ContentView: View {
     @StateObject private var recordManager = DivinationRecordManager()
+    @State private var selectedTab = 0
+    @State private var shouldResetDivination = false
     
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             NavigationView {
-                DivinationView()
+                DivinationView(shouldReset: $shouldResetDivination)
             }
             .tabItem {
                 Label("占卜", systemImage: "sparkles")
             }
+            .tag(0)
             
             NavigationView {
                 HistoryView()
@@ -29,8 +32,24 @@ struct ContentView: View {
             .tabItem {
                 Label("历史记录", systemImage: "clock")
             }
+            .tag(1)
         }
         .environmentObject(recordManager)
+        .environmentObject(NavigationManager(
+            switchToHistoryTab: {
+                selectedTab = 1
+                shouldResetDivination = true
+            }
+        ))
+    }
+}
+
+// 导航管理器
+class NavigationManager: ObservableObject {
+    let switchToHistoryTab: () -> Void
+    
+    init(switchToHistoryTab: @escaping () -> Void) {
+        self.switchToHistoryTab = switchToHistoryTab
     }
 }
 
