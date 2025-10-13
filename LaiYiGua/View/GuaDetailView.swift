@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAI
 
 struct GuaDetailView: View {
     let guaName: String
@@ -13,6 +14,9 @@ struct GuaDetailView: View {
     @State private var yaoContents: [Int: String] = [:]
     @State private var interpretation: (strategy: String, content: String) = ("策略加载中...", "内容加载中...")
     @State private var showSaveAlert = false
+    @State private var aiInterpretation: String = ""
+    @State private var isLoadingAI: Bool = false
+    @State private var showAIInterpretation: Bool = false
     @EnvironmentObject private var recordManager: DivinationRecordManager
     @Environment(\.dismiss) private var dismiss
 
@@ -51,6 +55,95 @@ struct GuaDetailView: View {
                 
                 // 解析后的内容显示
                 ParsedContentView(content: content)
+                
+                // AI解卦按钮
+                if !isLoadingAI && interpretation.content != "内容加载中..." {
+                    Button(action: {
+                        Task {
+                            await generateAIInterpretation()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "brain.head.profile")
+                            Text("AI解卦")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.purple)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                    .padding(.top)
+                }
+                
+                // AI加载状态
+                if isLoadingAI {
+                    ProgressView("AI正在解卦中...")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                }
+                
+                // AI解卦结果
+                if showAIInterpretation && !aiInterpretation.isEmpty {
+                    Divider()
+                        .padding(.top)
+                    
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Image(systemName: "brain.head.profile")
+                                .foregroundColor(.purple)
+                            Text("AI解卦")
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.purple)
+                        }
+                        
+                        // 解析并显示AI回复
+                        let parsedContent = parseAIResponse(aiInterpretation)
+                        
+                        // 一句话总结（重点显示）
+                        if !parsedContent.summary.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("核心建议")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.purple)
+                                
+                                Text(parsedContent.summary)
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.primary)
+                                    .padding()
+                                    .background(Color.purple.opacity(0.2))
+                                    .cornerRadius(8)
+                            }
+                        }
+                        
+                        // 详细解析
+                        if !parsedContent.details.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("详细解析")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.purple)
+                                
+                                Text(parsedContent.details)
+                                    .font(.body)
+                                    .lineSpacing(4)
+                            }
+                        }
+                        
+                        // 如果解析失败，显示原始内容
+                        if parsedContent.summary.isEmpty && parsedContent.details.isEmpty {
+                            Text(aiInterpretation)
+                                .font(.body)
+                                .lineSpacing(4)
+                        }
+                    }
+                    .padding()
+                    .background(Color.purple.opacity(0.1))
+                    .cornerRadius(12)
+                }
             }
             .padding()
         }
@@ -140,6 +233,128 @@ struct GuaDetailView: View {
             // 否则显示保存成功提示
             showSaveAlert = true
         }
+    }
+    
+    func generateAIInterpretation() async {
+        await MainActor.run {
+            isLoadingAI = true
+            showAIInterpretation = false
+        }
+        
+        do {
+            let ai = FirebaseAI.firebaseAI(backend: .googleAI())
+            let client = ai.generativeModel(modelName: "gemini-2.0-flash")
+            
+            // 生成卦相描述
+            let guaDescription = generateGuaDescription()
+            
+            let prompt = """
+            你是一位精通周易占卜的专家。请根据以下信息为用户提供具体的解卦建议：
+            
+            用户问题：\(question)
+            
+            卦象信息：\(guaName)
+            \(guaDescription)
+            
+            解卦策略：\(interpretation.strategy)
+            
+            传统解释概要：\(String(interpretation.content.prefix(500)))...
+            
+            请按以下格式回复：
+            
+            【一句话总结】
+            [用一句话概括对用户问题的核心建议，20字以内]
+            
+            【详细解析】
+            请结合用户的具体问题和卦象，提供：
+            1. 针对用户问题的直接建议
+            2. 当前形势的分析
+            3. 行动指导和注意事项
+            4. 时机把握的建议
+            
+            请用易懂的现代语言解释，避免过于深奥的古文，让用户能够理解并应用到实际生活中。
+            详细解析部分字数控制在300-500字之间。
+            注意：不要在回复中使用markdown格式符号（如**、#等）。
+            """
+            
+            let response = try await client.generateContent(prompt)
+            let responseText = response.text ?? "AI解卦暂时无法生成，请稍后再试。"
+            
+            await MainActor.run {
+                self.aiInterpretation = responseText
+                self.isLoadingAI = false
+                self.showAIInterpretation = true
+            }
+        } catch {
+            await MainActor.run {
+                self.aiInterpretation = "AI解卦出现错误：\(error.localizedDescription)"
+                self.isLoadingAI = false
+                self.showAIInterpretation = true
+            }
+        }
+    }
+    
+    private func parseAIResponse(_ response: String) -> (summary: String, details: String) {
+        let lines = response.components(separatedBy: .newlines)
+        var summary = ""
+        var details = ""
+        var currentSection = ""
+        
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            if trimmed.contains("【一句话总结】") {
+                currentSection = "summary"
+                continue
+            } else if trimmed.contains("【详细解析】") {
+                currentSection = "details"
+                continue
+            }
+            
+            if !trimmed.isEmpty {
+                switch currentSection {
+                case "summary":
+                    if summary.isEmpty {
+                        summary = trimmed
+                    }
+                case "details":
+                    if !details.isEmpty {
+                        details += "\n"
+                    }
+                    details += trimmed
+                default:
+                    // 如果没有找到标准格式，将所有内容作为详细解析
+                    if !details.isEmpty {
+                        details += "\n"
+                    }
+                    details += trimmed
+                }
+            }
+        }
+        
+        return (summary: summary, details: details)
+    }
+    
+    private func generateGuaDescription() -> String {
+        var description = ""
+        
+        // 显示原始爻象
+        description += "原始爻象（从下至上）：\n"
+        for (index, yao) in originalYao.enumerated() {
+            let position = index + 1
+            let yaoType = (yao == 6 || yao == 8) ? "阴爻" : "阳爻"
+            let isChanging = changingYaoPositions.contains(position) ? "（变爻）" : ""
+            description += "第\(position)爻：\(yaoType)\(isChanging)\n"
+        }
+        
+        // 显示变爻信息
+        if !changingYaoPositions.isEmpty {
+            description += "\n变爻位置：第\(changingYaoPositions.map(String.init).joined(separator: "、"))爻"
+        } else {
+            description += "\n静卦（无变爻）"
+        }
+        
+        return description
     }
 }
 

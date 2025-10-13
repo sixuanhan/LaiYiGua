@@ -2,14 +2,14 @@ import SwiftUI
 
 // 八卦组合到六十四卦的先天序号和卦名
 let guaFullMap: [String: [String]] = [
-    "坤": ["2. 坤为地", "15. 地山谦", "7. 地水师", "46. 地风升", "24. 地雷复", "36. 地火明夷", "19. 地泽临", "11. 地天泰"],
-    "艮": ["23. 山地剥", "52. 艮为山", "4. 山水蒙", "18. 山风蛊", "27. 山雷颐", "22. 山火贲", "41. 山泽损", "26. 山天大畜"],
-    "坎": ["8. 水地比", "39. 水山蹇", "29. 坎为水", "48. 水风井", "3. 水雷屯", "63. 水火既济", "60. 水泽节", "5. 水天需"],
-    "巽": ["20. 风地观", "53. 风山渐", "59. 风水涣", "57. 巽为风", "42. 风雷益", "37. 风火家人", "61. 风泽中孚", "9. 风天小畜"],
-    "震": ["16. 雷地豫", "62. 雷山小过", "40. 雷水解", "32. 雷风恒", "51. 震为雷", "55. 雷火丰", "54. 雷泽归妹", "34. 雷天大壮"],
-    "离": ["35. 火地晋", "56. 火山旅", "64. 火水未济", "50. 火风鼎", "21. 火雷噬嗑", "30. 离为火", "38. 火泽睽", "14. 火天大有"],
-    "兑": ["45. 泽地萃", "31. 泽山咸", "47. 泽水困", "28. 泽风大过", "17. 泽雷随", "49. 泽火革", "58. 兑为泽", "43. 泽天夬"],
-    "乾": ["12. 天地否", "33. 天山遁", "6. 天水讼", "44. 天风姤", "25. 天雷无妄", "13. 天火同人", "10. 天泽履", "1. 乾为天"]
+    "坤": ["2. 坤卦", "15. 谦卦", "7. 师卦", "46. 升卦", "24. 复卦", "36. 明夷卦", "19. 临卦", "11. 泰卦"],
+    "艮": ["23. 剥卦", "52. 艮卦", "4. 蒙卦", "18. 蛊卦", "27. 颐卦", "22. 贲卦", "41. 损卦", "26. 大畜卦"],
+    "坎": ["8. 比卦", "39. 蹇卦", "29. 坎卦", "48. 井卦", "3. 屯卦", "63. 既济卦", "60. 节卦", "5. 需卦"],
+    "巽": ["20. 观卦", "53. 渐卦", "59. 涣卦", "57. 巽卦", "42. 益卦", "37. 家人卦", "61. 中孚卦", "9. 小畜卦"],
+    "震": ["16. 豫卦", "62. 小过卦", "40. 解卦", "32. 恒卦", "51. 震卦", "55. 丰卦", "54. 归妹卦", "34. 大壮卦"],
+    "离": ["35. 晋卦", "56. 旅卦", "64. 未济卦", "50. 鼎卦", "21. 噬嗑卦", "30. 离卦", "38. 睽卦", "14. 大有卦"],
+    "兑": ["45. 萃卦", "31. 咸卦", "47. 困卦", "28. 大过卦", "17. 随卦", "49. 革卦", "58. 兑卦", "43. 夬卦"],
+    "乾": ["12. 否卦", "33. 遁卦", "6. 讼卦", "44. 姤卦", "25. 无妄卦", "13. 同人卦", "10. 履卦", "1. 乾卦"]
 ]
 
 // 卦名与Unicode符号映射
@@ -249,59 +249,23 @@ struct GuaResultView: View {
                     .padding(.top, 4)
             }
             
-            HStack(spacing: 20) {
-                NavigationLink(destination: GuaDetailView(
-                    guaName: fullGua,
-                    guaURL: getGuaURL(fullGua: fullGua),
-                    changingYaoPositions: changingInfo.positions,
-                    originalYao: yao,
-                    question: question,
-                    onSaveAndExit: onSaveAndExit
-                )
-                .toolbar(.hidden, for: .tabBar)) {
-                    Text("解卦")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(Color.blue)
-                        .cornerRadius(8)
-                }
-                
-                Button(action: {
-                    let debugFullGua = fullGua
-                    // 取卦名（去掉序号和空格）
-                    let guaName = fullGua.components(separatedBy: ".").last?.trimmingCharacters(in: .whitespaces) ?? fullGua
-                    let url1 = guaLinks[guaName]
-                    let url2 = guaLinks[fullGua]
-                    print("[DEBUG] fullGua=\(debugFullGua), guaName=\(guaName), url1=\(url1 ?? "nil"), url2=\(url2 ?? "nil")")
-                    if let url = url1 ?? url2 {
-                        if let link = URL(string: url) {
-                            print("[DEBUG] Opening URL: \(link)")
-                            #if os(iOS)
-                            UIApplication.shared.open(link)
-                            #elseif os(macOS)
-                            NSWorkspace.shared.open(link)
-                            #endif
-                        } else {
-                            print("[DEBUG] URL string invalid: \(url)")
-                        }
-                    } else {
-                        print("[DEBUG] No URL found for guaName: \(guaName) or fullGua: \(fullGua)")
-                    }
-                }) {
-                    Text("查看卦象详情")
-                        .font(.headline)
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.blue, lineWidth: 2)
-                        )
-                }
+            NavigationLink(destination: GuaDetailView(
+                guaName: fullGua,
+                guaURL: getGuaURL(fullGua: fullGua),
+                changingYaoPositions: changingInfo.positions,
+                originalYao: yao,
+                question: question,
+                onSaveAndExit: onSaveAndExit
+            )
+            .toolbar(.hidden, for: .tabBar)) {
+                Text("解卦")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(Color.blue)
+                    .cornerRadius(8)
             }
-            .padding(.top, 8)
         }
         .padding()
         .navigationTitle("卦象结果")

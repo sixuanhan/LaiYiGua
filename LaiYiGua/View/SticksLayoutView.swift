@@ -130,12 +130,6 @@ struct SticksLayoutView: View {
                                             .frame(width: 34, height: 3)
                                     }
                                 }
-                                .overlay(
-                                    // 变爻标记
-                                    (yao == 6 || yao == 9) ? Circle()
-                                        .fill(Color.red)
-                                        .frame(width: 6, height: 6) : nil
-                                )
                             }
                         }
                     }
