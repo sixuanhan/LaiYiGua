@@ -141,10 +141,12 @@ struct DivinationView: View {
                 Text("开始占卜")
                     .font(.largeTitle)
                     .padding(.top)
-                
+                    .padding(.leading)
+
                 Text("提出一个合适的问题")
                     .font(.title)
                     .padding(.top)
+                    .padding(.leading)
                 
                 // 占卜问题纲领
                 VStack(alignment: .leading, spacing: 12) {
@@ -285,4 +287,5 @@ struct DivinationView: View {
 
 #Preview {
     DivinationView()
+    .environmentObject(DivinationRecordManager())
 }

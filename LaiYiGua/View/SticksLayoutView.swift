@@ -20,7 +20,7 @@ struct SticksLayoutView: View {
     @State private var removedSticks: Int = 0
     @State private var centerSticks: Int = 0
     @State private var stepCount: Int = 1 // 新增：记录当前轮次
-    @State private var sticksLeft: Int = 49 // 新增：当前剩余木棍数
+    @State private var sticksLeft: Int = 49 // 新增：当前剩余蓍草数
     @State private var yaoList: [Int] = [] // 新增：记录每轮生成的爻
     @State private var navigateToResult: Bool = false // 新增：控制跳转到卦展示页面
     // 拖拽相关状态
@@ -34,7 +34,7 @@ struct SticksLayoutView: View {
                 // 用户提示
                 if !isSplit && stepCount == 1 {
                     VStack {
-                        Text("请按住并拖动来分割木棍堆")
+                        Text("请按住并拖动来分割蓍草堆")
                             .font(.headline)
                             .foregroundColor(.primary)
                             .padding()
@@ -46,7 +46,7 @@ struct SticksLayoutView: View {
                     .padding(.top, 60)
                 } else if isSplit && !movedStick {
                     VStack {
-                        Text("点击移出一根木棍")
+                        Text("点击移出一根蓍草")
                             .font(.headline)
                             .foregroundColor(.primary)
                             .padding()
@@ -140,30 +140,30 @@ struct SticksLayoutView: View {
                     .position(x: geometry.size.width - 70, y: geometry.size.height - 100)
                 }
                 
-                // 居中横在页面上方的木棍
+                // 居中横在页面上方的蓍草
                 StickView()
                     .frame(width: geometry.size.width * 0.6, height: 18)
                     .rotationEffect(.degrees(90))
                     .position(x: geometry.size.width / 2, y: 40)
-                // 左下角斜着的木棍（第二次点击后出现）
+                // 左下角斜着的蓍草（第二次点击后出现）
                 if movedStick {
                     StickView()
                         .frame(width: 30, height: 120)
                         .rotationEffect(.degrees(-30))
                         .position(x: geometry.size.width * 0.12, y: geometry.size.height - 40)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .animation(.easeInOut(duration: 0.6), value: movedStick)
+                        .animation(.spring(response: 0.8, dampingFraction: 0.6, blendDuration: 0), value: movedStick)
                 }
                 // 分组显示
                 if let split = splitIndex, isSplit, grouped {
                     // 步骤3：分组并显示余数
                     let leftGroups = leftRemainder == 4 ? leftCount / 4 - 1 : leftCount / 4
                     let rightGroups = rightRemainder == 4 ? rightCount / 4 - 1 : rightCount / 4
-                    HStack(alignment: .bottom, spacing: geometry.size.width * 0.25) { // 用屏幕宽度控制左右堆间距
+                    HStack(alignment: .center, spacing: geometry.size.width * 0.4) { // 用屏幕宽度控制左右堆间距
                         // 左堆
-                        VStack(spacing: -190) { // 负值让堆叠更紧凑
+                        VStack(spacing: -90) { // 负值让堆叠更紧凑
                             ForEach(0..<leftGroups, id: \.self) { i in
-                                HStack(spacing: 0.5) {
+                                HStack(spacing: 1) {
                                     ForEach(0..<4, id: \.self) { _ in
                                         Rectangle()
                                             .fill(Color.brown)
@@ -189,9 +189,9 @@ struct SticksLayoutView: View {
                             }
                         }
                         // 右堆
-                        VStack(spacing: -190) { // 负值让堆叠更紧凑
+                        VStack(spacing: -90) { // 负值让堆叠更紧凑
                             ForEach(0..<rightGroups, id: \.self) { i in
-                                HStack(spacing: 0.5) {
+                                HStack(spacing: 1) {
                                     ForEach(0..<4, id: \.self) { _ in
                                         Rectangle()
                                             .fill(Color.brown)
@@ -213,7 +213,6 @@ struct SticksLayoutView: View {
                                             .rotationEffect(.degrees(-60))
                                     }
                                 }
-                                .opacity(0.8)
                             }
                         }
                     }
@@ -251,7 +250,7 @@ struct SticksLayoutView: View {
                                 StickView()
                                     .frame(width: 4, height: geometry.size.height * 0.3)
                                     .transition(.scale)
-                                    .animation(.easeInOut(duration: 0.6), value: splitIndex)
+                                    .animation(.spring(response: 0.7, dampingFraction: 0.8, blendDuration: 0), value: splitIndex)
                             }
                         }
                         Spacer(minLength: 40) // 增加两堆之间的间隔
@@ -260,14 +259,14 @@ struct SticksLayoutView: View {
                                 StickView()
                                     .frame(width: 4, height: geometry.size.height * 0.3)
                                     .transition(.scale)
-                                    .animation(.easeInOut(duration: 0.6), value: movedStick)
+                                    .animation(.spring(response: 0.7, dampingFraction: 0.8, blendDuration: 0), value: movedStick)
                             }
                         }
                     }
                     .frame(width: geometry.size.width * 0.8, height: geometry.size.height * 0.5)
                     .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
                 } else {
-                    // 初始状态：显示49根木棍
+                    // 初始状态：显示49根蓍草
                     ZStack {
                         HStack(alignment: .center, spacing: 6) {
                             ForEach(0..<totalSticks, id: \.self) { _ in
@@ -284,7 +283,7 @@ struct SticksLayoutView: View {
                                 .frame(width: 3, height: geometry.size.height * 0.6)
                                 .position(x: geometry.size.width * 0.1 + (geometry.size.width * 0.8) * splitLinePosition, 
                                          y: geometry.size.height / 2)
-                                .animation(.easeInOut(duration: 0.1), value: splitLinePosition)
+                                .animation(.interactiveSpring(response: 0.3, dampingFraction: 1.0, blendDuration: 0), value: splitLinePosition)
                         }
                     }
                     .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
@@ -309,7 +308,7 @@ struct SticksLayoutView: View {
                             let minSplit = 1
                             let maxSplit = sticksLeft - 1
                             
-                            withAnimation(.easeInOut(duration: 0.6)) {
+                            withAnimation(.spring(response: 0.8, dampingFraction: 0.7, blendDuration: 0)) {
                                 splitIndex = max(minSplit, min(maxSplit, calculatedSplit))
                                 isSplit = true
                                 leftCount = splitIndex ?? 0
@@ -327,7 +326,7 @@ struct SticksLayoutView: View {
                     let minSplit = 1
                     let maxSplit = sticksLeft - 1
                     
-                    withAnimation(.easeInOut(duration: 0.6)) {
+                    withAnimation(.spring(response: 0.8, dampingFraction: 0.7, blendDuration: 0)) {
                         splitIndex = max(minSplit, min(maxSplit, calculatedSplit))
                         isSplit = true
                         leftCount = splitIndex ?? 0
@@ -360,14 +359,14 @@ struct SticksLayoutView: View {
     
     private func handleTapGesture() {
         if isSplit && !movedStick {
-            withAnimation(.easeInOut(duration: 0.6)) {
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.6, blendDuration: 0)) {
                 movedStick = true
                 rightCount = sticksLeft - leftCount - 1
             }
             print("第\(stepCount)轮：移棍 movedStick set to true, splitIndex=\(splitIndex!), isSplit=\(isSplit), grouped=\(grouped), sticksLeft=\(sticksLeft)")
         } else if isSplit && movedStick && !grouped {
             // 步骤2：移出一根到左下角
-            withAnimation(.easeInOut(duration: 0.6)) {
+            withAnimation(.spring(response: 0.9, dampingFraction: 0.7, blendDuration: 0)) {
                 grouped = true
                 leftRemainder = leftCount % 4 == 0 ? 4 : leftCount % 4
                 rightRemainder = rightCount % 4 == 0 ? 4 : rightCount % 4
@@ -386,7 +385,7 @@ struct SticksLayoutView: View {
             // 步骤4：移除余数（前两轮），第三轮生成爻
             if stepCount < 3 {
                 print("第\(stepCount)轮：移除余数 红色余数数量: \(leftRemainder), 蓝色余数数量: \(rightRemainder), 当前平摊数量: \(centerSticks), sticksLeft=\(sticksLeft)")
-                withAnimation(.easeInOut(duration: 0.6)) {
+                withAnimation(.spring(response: 0.9, dampingFraction: 0.6, blendDuration: 0)) {
                     splitIndex = nil
                     isSplit = false
                     movedStick = false
@@ -409,7 +408,7 @@ struct SticksLayoutView: View {
                 let yao = leftGroups + rightGroups
                 yaoList.append(yao)
                 print("第3轮结束，生成爻: \(yao)，当前所有爻: \(yaoList)")
-                withAnimation(.easeInOut(duration: 0.6)) {
+                withAnimation(.spring(response: 0.9, dampingFraction: 0.6, blendDuration: 0)) {
                     splitIndex = nil
                     isSplit = false
                     movedStick = false
