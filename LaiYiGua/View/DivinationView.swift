@@ -1,6 +1,5 @@
 //  DivinationView.swift
 //  LaiYiGua
-//  占卜页面 Placeholder
 import SwiftUI
 import FirebaseAI
 
@@ -9,10 +8,16 @@ final class DivinationViewModel: ObservableObject {
     @Published var refinedQuestions: [String] = []
     @Published var selectedQuestion: String = ""
     @Published var isLoading: Bool = false
+    @Published var duplicateWarning: String? = nil
     private var client: GenerativeModel?
+    private var recordManager: DivinationRecordManager?
 
     init() {
         setup()
+    }
+    
+    func setRecordManager(_ manager: DivinationRecordManager) {
+        self.recordManager = manager
     }
 
     func setup() {
@@ -26,6 +31,19 @@ final class DivinationViewModel: ObservableObject {
             return
         }
         isLoading = true
+        duplicateWarning = nil
+        
+        // 获取最近3个月的历史问题
+        let recentQuestions = getRecentQuestions()
+        let historySection = recentQuestions.isEmpty ? "" : """
+        
+        最近3个月的历史问题：
+        \(recentQuestions.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n"))
+        
+        请判断当前问题是否与历史问题重复或相似。如果重复，请在回复最后添加一行：
+        【重复警告】这个问题与历史问题相似，可能影响占卜准确性。
+        """
+        
         let prompt = """
         你是一位精通周易占卜的专家。请将用户的问题修正为更适合易经占卜的形式。
         
@@ -36,7 +54,7 @@ final class DivinationViewModel: ObservableObject {
         4. 有自由意志的选择：最好以「我决定…」、「我想要…」为开头
         5. 问题要具体明确，当事者要有所决定（可能决定，非最终决定）
         
-        用户原问题："\(question)"
+        用户原问题："\(question)"\(historySection)
         
         请提供3个不同的修正版本，每个版本都要符合上述要求，格式如下：
         
@@ -46,15 +64,16 @@ final class DivinationViewModel: ObservableObject {
         
         3. [修正问题3]
         
-        只返回这3个修正问题，不要其他解释。
+        如果存在重复问题，请在最后添加重复警告。
         """
         Task {
             do {
                 let response = try await client.generateContent(prompt)
                 let responseText = response.text ?? "未获得有效回复"
-                let questions = parseRefinedQuestions(from: responseText)
+                let (questions, warning) = parseRefinedQuestions(from: responseText)
                 DispatchQueue.main.async {
                     self.refinedQuestions = questions
+                    self.duplicateWarning = warning
                     self.isLoading = false
                 }
             } catch {
@@ -66,12 +85,20 @@ final class DivinationViewModel: ObservableObject {
         }
     }
     
-    private func parseRefinedQuestions(from text: String) -> [String] {
+    private func parseRefinedQuestions(from text: String) -> ([String], String?) {
         let lines = text.components(separatedBy: .newlines)
         var questions: [String] = []
+        var warning: String? = nil
         
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // 检查是否包含重复警告
+            if trimmed.contains("【重复警告】") {
+                warning = trimmed.replacingOccurrences(of: "【重复警告】", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+                continue
+            }
+            
             // 匹配 "1. 问题内容" 格式
             if let regex = try? NSRegularExpression(pattern: "^\\d+\\.\\s*(.+)$"),
                let match = regex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)),
@@ -83,12 +110,25 @@ final class DivinationViewModel: ObservableObject {
             }
         }
         
-        return questions.isEmpty ? [text] : questions
+        return (questions.isEmpty ? [text] : questions, warning)
+    }
+    
+    private func getRecentQuestions() -> [String] {
+        guard let recordManager = recordManager else { return [] }
+        
+        let threeMonthsAgo = Calendar.current.date(byAdding: .month, value: -3, to: Date()) ?? Date()
+        
+        return recordManager.records
+            .filter { $0.date >= threeMonthsAgo }
+            .sorted { $0.date > $1.date } // 最新的在前
+            .prefix(10) // 最多取10个问题，避免prompt过长
+            .map { $0.question }
     }
 }
 
 struct DivinationView: View {
     @StateObject private var viewModel = DivinationViewModel()
+    @EnvironmentObject private var recordManager: DivinationRecordManager
     @Binding var shouldReset: Bool
     
     init(shouldReset: Binding<Bool> = .constant(false)) {
@@ -159,6 +199,26 @@ struct DivinationView: View {
                         .frame(maxWidth: .infinity)
                 }
                 
+                // 重复警告显示
+                if let warning = viewModel.duplicateWarning {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            Text("重复问题警告")
+                                .font(.headline)
+                                .foregroundColor(.orange)
+                        }
+                        Text(warning)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                    }
+                    .padding()
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+                }
+                
                 // 修正后的问题选择
                 if !viewModel.refinedQuestions.isEmpty && !viewModel.isLoading {
                     VStack(alignment: .leading, spacing: 16) {
@@ -207,12 +267,16 @@ struct DivinationView: View {
                 Spacer(minLength: 20)
             }
         }
+        .onAppear {
+            viewModel.setRecordManager(recordManager)
+        }
         .onChange(of: shouldReset) { reset in
             if reset {
                 // 重置所有状态
                 viewModel.question = ""
                 viewModel.refinedQuestions = []
                 viewModel.selectedQuestion = ""
+                viewModel.duplicateWarning = nil
                 shouldReset = false
             }
         }
