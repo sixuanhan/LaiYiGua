@@ -6,6 +6,7 @@ struct GuaDetailView: View {
     let changingYaoPositions: [Int]
     let originalYao: [Int]
     let question: String
+    let showSaveButton: Bool
 
     @State private var content: String = "加载中..."
     @State private var yaoContents: [Int: String] = [:]
@@ -13,6 +14,26 @@ struct GuaDetailView: View {
     @State private var showSaveAlert = false
     @EnvironmentObject private var recordManager: DivinationRecordManager
     @Environment(\.dismiss) private var dismiss
+
+    // 便利初始化器，用于新的占卜结果（需要保存按钮）
+    init(guaName: String, guaURL: URL, changingYaoPositions: [Int], originalYao: [Int], question: String) {
+        self.guaName = guaName
+        self.guaURL = guaURL
+        self.changingYaoPositions = changingYaoPositions
+        self.originalYao = originalYao
+        self.question = question
+        self.showSaveButton = true
+    }
+    
+    // 完整初始化器，用于历史记录（可选择是否显示保存按钮）
+    init(guaName: String, guaURL: URL, changingYaoPositions: [Int], originalYao: [Int], question: String, showSaveButton: Bool) {
+        self.guaName = guaName
+        self.guaURL = guaURL
+        self.changingYaoPositions = changingYaoPositions
+        self.originalYao = originalYao
+        self.question = question
+        self.showSaveButton = showSaveButton
+    }
 
     var body: some View {
         ScrollView {
@@ -32,11 +53,13 @@ struct GuaDetailView: View {
         }
         .navigationTitle(guaName)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("保存") {
-                    saveRecord()
+            if showSaveButton {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("保存") {
+                        saveRecord()
+                    }
+                    .disabled(interpretation.content == "内容加载中..." || content == "加载中...")
                 }
-                .disabled(interpretation.content == "内容加载中..." || content == "加载中...")
             }
         }
         .alert("保存成功", isPresented: $showSaveAlert) {

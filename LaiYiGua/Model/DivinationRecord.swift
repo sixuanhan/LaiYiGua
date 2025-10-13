@@ -40,25 +40,52 @@ class DivinationRecordManager: ObservableObject {
     
     func saveRecord(_ record: DivinationRecord) {
         records.insert(record, at: 0) // 新记录放在最前面
+        print("💾 添加新的占卜记录: \(record.guaName) - \(record.question)")
         saveRecords()
     }
     
     func deleteRecord(at index: Int) {
-        guard index < records.count else { return }
+        guard index < records.count else {
+            print("❌ 删除记录失败: 索引 \(index) 超出范围")
+            return
+        }
+        let deletedRecord = records[index]
         records.remove(at: index)
+        print("🗑️ 删除占卜记录: \(deletedRecord.guaName) - \(deletedRecord.question)")
         saveRecords()
     }
     
+    func clearAllRecords() {
+        let recordCount = records.count
+        records.removeAll()
+        userDefaults.removeObject(forKey: recordsKey)
+        print("🧹 清除所有 \(recordCount) 条占卜记录")
+    }
+    
     private func saveRecords() {
-        if let encoded = try? JSONEncoder().encode(records) {
+        do {
+            let encoded = try JSONEncoder().encode(records)
             userDefaults.set(encoded, forKey: recordsKey)
+            print("✅ 成功保存 \(records.count) 条占卜记录到 UserDefaults")
+        } catch {
+            print("❌ 保存占卜记录失败: \(error.localizedDescription)")
         }
     }
     
     private func loadRecords() {
-        if let data = userDefaults.data(forKey: recordsKey),
-           let decoded = try? JSONDecoder().decode([DivinationRecord].self, from: data) {
+        guard let data = userDefaults.data(forKey: recordsKey) else {
+            print("📝 UserDefaults 中没有找到历史记录，使用空数组")
+            return
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode([DivinationRecord].self, from: data)
             records = decoded
+            print("✅ 成功从 UserDefaults 加载 \(records.count) 条占卜记录")
+        } catch {
+            print("❌ 加载占卜记录失败: \(error.localizedDescription)")
+            // 如果解码失败，清除损坏的数据
+            userDefaults.removeObject(forKey: recordsKey)
         }
     }
 }

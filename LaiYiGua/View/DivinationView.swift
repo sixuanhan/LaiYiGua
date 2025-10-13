@@ -93,8 +93,12 @@ struct DivinationView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("问题修正")
+                Text("开始占卜")
                     .font(.largeTitle)
+                    .padding(.top)
+                
+                Text("提出一个合适的问题")
+                    .font(.title)
                     .padding(.top)
                 
                 // 占卜问题纲领

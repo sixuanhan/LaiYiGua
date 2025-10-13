@@ -67,7 +67,8 @@ struct HistoryView: View {
                         guaURL: record.guaURL,
                         changingYaoPositions: record.changingYaoPositions,
                         originalYao: record.originalYao,
-                        question: record.question
+                        question: record.question,
+                        showSaveButton: false
                     )
                 }
             }
