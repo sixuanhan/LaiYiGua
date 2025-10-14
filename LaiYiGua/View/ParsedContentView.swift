@@ -4,17 +4,22 @@ struct ParsedContentView: View {
     let content: String
     
     var body: some View {
-        ForEach(parseMainContent(content), id: \.id) { item in
-            if item.isTitle {
-                Text(item.text)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .padding(.top, 8)
-            } else {
-                Text(item.text)
-                    .font(.body)
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(parseMainContent(content), id: \.id) { item in
+                if item.isTitle {
+                    Text(item.text)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .padding(.top, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text(item.text)
+                        .font(.body)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
     
     private func parseMainContent(_ content: String) -> [ContentItem] {

@@ -30,31 +30,76 @@ class InterpretationStrategy {
         return getFullGuaName(inner: innerName, outer: outerName)
     }
     
+    // 内容项结构
+    struct ContentSection: Identifiable {
+        let id = UUID()
+        let title: String
+        let content: String
+        let priority: Int // 优先级，数字越小越重要
+        let isExpandedByDefault: Bool
+    }
+    
     static func getStrategy(
         changingYaoPositions: [Int],
         yaoContents: [Int: String],
         content: String,
         guaName: String,
         originalYao: [Int]
-    ) async -> (strategy: String, content: String) {
+    ) async -> (strategy: String, content: String, sections: [ContentSection]) {
         
         let changingYaoCount = changingYaoPositions.count
         
         switch changingYaoCount {
         case 0:
             // 1.六爻不变，依据本卦卦辞来解卦
+            let sections = [
+                ContentSection(
+                    title: "解卦策略",
+                    content: "六爻不变 - 用本卦卦辞解卦\n\n依据本卦卦辞来解卦。\n\n【解卦要点】\n本卦卦辞为主要依据，分析所问之事的吉凶。",
+                    priority: 1,
+                    isExpandedByDefault: true
+                ),
+                ContentSection(
+                    title: "本卦详解",
+                    content: content,
+                    priority: 2,
+                    isExpandedByDefault: true
+                )
+            ]
             return (
                 strategy: "六爻不变 - 用本卦卦辞解卦",
-                content: "依据本卦卦辞来解卦。\n\n【解卦要点】\n本卦卦辞为主要依据，分析所问之事的吉凶)"
+                content: "依据本卦卦辞来解卦。\n\n【解卦要点】\n本卦卦辞为主要依据，分析所问之事的吉凶)",
+                sections: sections
             )
             
         case 1:
             // 2.卦中有一个变爻，就用这个本卦变爻的爻辞来解卦
             let position = changingYaoPositions.first ?? 1
             let yaoContent = yaoContents[position] ?? "[爻辞加载中...]"
+            let sections = [
+                ContentSection(
+                    title: "解卦策略",
+                    content: "一个变爻 - 用本卦变爻爻辞解卦\n\n用本卦第\(position)爻的爻辞来解卦。\n\n【解卦要点】\n以本卦变爻的爻辞为根据进行推演。",
+                    priority: 1,
+                    isExpandedByDefault: true
+                ),
+                ContentSection(
+                    title: "第\(position)爻爻辞",
+                    content: yaoContent,
+                    priority: 2,
+                    isExpandedByDefault: true
+                ),
+                ContentSection(
+                    title: "本卦详解",
+                    content: content,
+                    priority: 3,
+                    isExpandedByDefault: false
+                )
+            ]
             return (
                 strategy: "一个变爻 - 用本卦变爻爻辞解卦",
-                content: "用本卦第\(position)爻的爻辞来解卦。\n\n【解卦要点】\n以本卦变爻的爻辞为根据进行推演。\n\n【爻辞内容】\n\(yaoContent)"
+                content: "用本卦第\(position)爻的爻辞来解卦。\n\n【解卦要点】\n以本卦变爻的爻辞为根据进行推演。\n\n【爻辞内容】\n\(yaoContent)",
+                sections: sections
             )
             
         case 2:
@@ -63,9 +108,36 @@ class InterpretationStrategy {
             let upperPosition = changingYaoPositions.max() ?? 2
             let upperYaoContent = yaoContents[upperPosition] ?? "[爻辞加载中...]"
             let lowerYaoContent = yaoContents[lowerPosition] ?? "[爻辞加载中...]"
+            let sections = [
+                ContentSection(
+                    title: "解卦策略",
+                    content: "两个变爻 - 用两个变爻爻辞解卦，以上爻为主\n\n用本卦第\(lowerPosition)爻和第\(upperPosition)爻的爻辞解卦，以第\(upperPosition)爻为主。\n\n【解卦要点】\n以上爻（第\(upperPosition)爻）的爻辞为主要依据，下爻（第\(lowerPosition)爻）的爻辞为辅助依据。",
+                    priority: 1,
+                    isExpandedByDefault: true
+                ),
+                ContentSection(
+                    title: "主要爻辞 - 第\(upperPosition)爻",
+                    content: upperYaoContent,
+                    priority: 2,
+                    isExpandedByDefault: true
+                ),
+                ContentSection(
+                    title: "辅助爻辞 - 第\(lowerPosition)爻",
+                    content: lowerYaoContent,
+                    priority: 3,
+                    isExpandedByDefault: false
+                ),
+                ContentSection(
+                    title: "本卦详解",
+                    content: content,
+                    priority: 4,
+                    isExpandedByDefault: false
+                )
+            ]
             return (
                 strategy: "两个变爻 - 用两个变爻爻辞解卦，以上爻为主",
-                content: "用本卦第\(lowerPosition)爻和第\(upperPosition)爻的爻辞解卦，以第\(upperPosition)爻为主。\n\n【解卦要点】\n以上爻（第\(upperPosition)爻）的爻辞为主要依据，下爻（第\(lowerPosition)爻）的爻辞为辅助依据。\n\n【主要爻辞】\n\(upperYaoContent)\n\n【辅助爻辞】\n\(lowerYaoContent)"
+                content: "用本卦第\(lowerPosition)爻和第\(upperPosition)爻的爻辞解卦，以第\(upperPosition)爻为主。\n\n【解卦要点】\n以上爻（第\(upperPosition)爻）的爻辞为主要依据，下爻（第\(lowerPosition)爻）的爻辞为辅助依据。\n\n【主要爻辞】\n\(upperYaoContent)\n\n【辅助爻辞】\n\(lowerYaoContent)",
+                sections: sections
             )
             
         case 3:
@@ -74,9 +146,31 @@ class InterpretationStrategy {
             let changedGuaName = generateGuaName(from: changedYao)
             let changedGuaContent = await getChangedGuaContent(changedGuaName)
             
+            let sections = [
+                ContentSection(
+                    title: "解卦策略",
+                    content: "三个变爻 - 本卦卦辞为主，变卦卦辞为辅\n\n用本卦卦辞为主，变卦卦辞为辅进行综合考虑。\n\n【解卦要点】\n以本卦卦辞为主要依据，变卦卦辞为辅助参考。",
+                    priority: 1,
+                    isExpandedByDefault: true
+                ),
+                ContentSection(
+                    title: "本卦详解",
+                    content: content,
+                    priority: 2,
+                    isExpandedByDefault: true
+                ),
+                ContentSection(
+                    title: "变卦详解 - \(changedGuaName)",
+                    content: changedGuaContent,
+                    priority: 3,
+                    isExpandedByDefault: false
+                )
+            ]
+            
             return (
                 strategy: "三个变爻 - 本卦卦辞为主，变卦卦辞为辅",
-                content: "用本卦卦辞为主，变卦卦辞为辅进行综合考虑。\n\n【解卦要点】\n以本卦卦辞为主要依据，变卦卦辞为辅助参考。\n\n【变卦：\(changedGuaName)】\n\(changedGuaContent)"
+                content: "用本卦卦辞为主，变卦卦辞为辅进行综合考虑。\n\n【解卦要点】\n以本卦卦辞为主要依据，变卦卦辞为辅助参考。\n\n【变卦：\(changedGuaName)】\n\(changedGuaContent)",
+                sections: sections
             )
             
         case 4:
@@ -92,9 +186,37 @@ class InterpretationStrategy {
             let lowerYaoContent = changedYaoContents[lowerUnchanged] ?? "[变卦第\(lowerUnchanged)爻爻辞加载中...]"
             let upperYaoContent = changedYaoContents[upperUnchanged] ?? "[变卦第\(upperUnchanged)爻爻辞加载中...]"
             
+            let sections = [
+                ContentSection(
+                    title: "解卦策略",
+                    content: "四个变爻 - 用变卦不变爻爻辞解卦，以下爻为主\n\n用变卦的两个不变爻（第\(lowerUnchanged)爻和第\(upperUnchanged)爻）的爻辞解卦，以第\(lowerUnchanged)爻为主。\n\n【变卦：\(changedGuaName)】\n\n【解卦要点】\n以变卦下爻（第\(lowerUnchanged)爻）的爻辞为主要依据，上爻（第\(upperUnchanged)爻）的爻辞为辅助依据。",
+                    priority: 1,
+                    isExpandedByDefault: true
+                ),
+                ContentSection(
+                    title: "主要爻辞 - 变卦第\(lowerUnchanged)爻",
+                    content: lowerYaoContent,
+                    priority: 2,
+                    isExpandedByDefault: true
+                ),
+                ContentSection(
+                    title: "辅助爻辞 - 变卦第\(upperUnchanged)爻",
+                    content: upperYaoContent,
+                    priority: 3,
+                    isExpandedByDefault: false
+                ),
+                ContentSection(
+                    title: "本卦详解",
+                    content: content,
+                    priority: 4,
+                    isExpandedByDefault: false
+                )
+            ]
+            
             return (
                 strategy: "四个变爻 - 用变卦不变爻爻辞解卦，以下爻为主",
-                content: "用变卦的两个不变爻（第\(lowerUnchanged)爻和第\(upperUnchanged)爻）的爻辞解卦，以第\(lowerUnchanged)爻为主。\n\n【变卦：\(changedGuaName)】\n\n【解卦要点】\n以变卦下爻（第\(lowerUnchanged)爻）的爻辞为主要依据，上爻（第\(upperUnchanged)爻）的爻辞为辅助依据。\n\n【主要爻辞】\n\(lowerYaoContent)\n\n【辅助爻辞】\n\(upperYaoContent)"
+                content: "用变卦的两个不变爻（第\(lowerUnchanged)爻和第\(upperUnchanged)爻）的爻辞解卦，以第\(lowerUnchanged)爻为主。\n\n【变卦：\(changedGuaName)】\n\n【解卦要点】\n以变卦下爻（第\(lowerUnchanged)爻）的爻辞为主要依据，上爻（第\(upperUnchanged)爻）的爻辞为辅助依据。\n\n【主要爻辞】\n\(lowerYaoContent)\n\n【辅助爻辞】\n\(upperYaoContent)",
+                sections: sections
             )
             
         case 5:
@@ -106,9 +228,31 @@ class InterpretationStrategy {
             let changedYaoContents = await getChangedGuaYaoContents(changedGuaName)
             let unchangedYaoContent = changedYaoContents[unchangedPosition] ?? "[变卦第\(unchangedPosition)爻爻辞加载中...]"
             
+            let sections = [
+                ContentSection(
+                    title: "解卦策略",
+                    content: "五个变爻 - 用变卦不变爻爻辞解卦\n\n用变卦的不变爻（第\(unchangedPosition)爻）的爻辞解卦。\n\n【变卦：\(changedGuaName)】\n\n【解卦要点】\n以变卦不变爻的爻辞为唯一依据。",
+                    priority: 1,
+                    isExpandedByDefault: true
+                ),
+                ContentSection(
+                    title: "变卦第\(unchangedPosition)爻爻辞",
+                    content: unchangedYaoContent,
+                    priority: 2,
+                    isExpandedByDefault: true
+                ),
+                ContentSection(
+                    title: "本卦详解",
+                    content: content,
+                    priority: 3,
+                    isExpandedByDefault: false
+                )
+            ]
+            
             return (
                 strategy: "五个变爻 - 用变卦不变爻爻辞解卦",
-                content: "用变卦的不变爻（第\(unchangedPosition)爻）的爻辞解卦。\n\n【变卦：\(changedGuaName)】\n\n【解卦要点】\n以变卦不变爻的爻辞为唯一依据。\n\n【爻辞内容】\n\(unchangedYaoContent)"
+                content: "用变卦的不变爻（第\(unchangedPosition)爻）的爻辞解卦。\n\n【变卦：\(changedGuaName)】\n\n【解卦要点】\n以变卦不变爻的爻辞为唯一依据。\n\n【爻辞内容】\n\(unchangedYaoContent)",
+                sections: sections
             )
             
         case 6:
@@ -116,25 +260,77 @@ class InterpretationStrategy {
             let isQianKun = guaName.contains("乾") || guaName.contains("坤")
             if isQianKun {
                 let useNine = guaName.contains("乾") ? "用九" : "用六"
+                let sections = [
+                    ContentSection(
+                        title: "解卦策略",
+                        content: "六爻皆变 - 乾坤卦用\"\(useNine)\"解卦\n\n六爻皆变，本卦为\(guaName.contains("乾") ? "乾" : "坤")卦，用\"\(useNine)\"解卦。\n\n【解卦要点】\n以\"\(useNine)\"的内容为解卦依据。",
+                        priority: 1,
+                        isExpandedByDefault: true
+                    ),
+                    ContentSection(
+                        title: "\(useNine)内容",
+                        content: "[待添加\(useNine)具体内容]",
+                        priority: 2,
+                        isExpandedByDefault: true
+                    ),
+                    ContentSection(
+                        title: "本卦详解",
+                        content: content,
+                        priority: 3,
+                        isExpandedByDefault: false
+                    )
+                ]
                 return (
                     strategy: "六爻皆变 - 乾坤卦用\"\(useNine)\"解卦",
-                    content: "六爻皆变，本卦为\(guaName.contains("乾") ? "乾" : "坤")卦，用\"\(useNine)\"解卦。\n\n【解卦要点】\n以\"\(useNine)\"的内容为解卦依据。\n\n【\(useNine)内容】\n[待添加\(useNine)具体内容]"
+                    content: "六爻皆变，本卦为\(guaName.contains("乾") ? "乾" : "坤")卦，用\"\(useNine)\"解卦。\n\n【解卦要点】\n以\"\(useNine)\"的内容为解卦依据。\n\n【\(useNine)内容】\n[待添加\(useNine)具体内容]",
+                    sections: sections
                 )
             } else {
                 let changedYao = calculateChangedYao(originalYao: originalYao, changingPositions: changingYaoPositions)
                 let changedGuaName = generateGuaName(from: changedYao)
                 let changedGuaContent = await getChangedGuaContent(changedGuaName)
                 
+                let sections = [
+                    ContentSection(
+                        title: "解卦策略",
+                        content: "六爻皆变 - 用变卦卦辞解卦\n\n六爻皆变，用变卦的卦辞解卦。\n\n【变卦：\(changedGuaName)】\n\n【解卦要点】\n以变卦卦辞为解卦依据。",
+                        priority: 1,
+                        isExpandedByDefault: true
+                    ),
+                    ContentSection(
+                        title: "变卦详解 - \(changedGuaName)",
+                        content: changedGuaContent,
+                        priority: 2,
+                        isExpandedByDefault: true
+                    ),
+                    ContentSection(
+                        title: "本卦详解",
+                        content: content,
+                        priority: 3,
+                        isExpandedByDefault: false
+                    )
+                ]
+                
                 return (
                     strategy: "六爻皆变 - 用变卦卦辞解卦",
-                    content: "六爻皆变，用变卦的卦辞解卦。\n\n【变卦：\(changedGuaName)】\n\n【解卦要点】\n以变卦卦辞为解卦依据。\n\n【变卦卦辞】\n\(changedGuaContent)"
+                    content: "六爻皆变，用变卦的卦辞解卦。\n\n【变卦：\(changedGuaName)】\n\n【解卦要点】\n以变卦卦辞为解卦依据。\n\n【变卦卦辞】\n\(changedGuaContent)",
+                    sections: sections
                 )
             }
             
         default:
+            let sections = [
+                ContentSection(
+                    title: "错误信息",
+                    content: "变爻数量异常，请检查卦象。",
+                    priority: 1,
+                    isExpandedByDefault: true
+                )
+            ]
             return (
                 strategy: "未知情况",
-                content: "变爻数量异常，请检查卦象。"
+                content: "变爻数量异常，请检查卦象。",
+                sections: sections
             )
         }
     }

@@ -13,6 +13,7 @@ struct GuaDetailView: View {
     @State private var content: String = "加载中..."
     @State private var yaoContents: [Int: String] = [:]
     @State private var interpretation: (strategy: String, content: String) = ("策略加载中...", "内容加载中...")
+    @State private var interpretationSections: [InterpretationStrategy.ContentSection] = []
     @State private var showSaveAlert = false
     @State private var aiInterpretation: String = ""
     @State private var isLoadingAI: Bool = false
@@ -64,19 +65,34 @@ struct GuaDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // 解卦策略部分
-                InterpretationStrategyView(
-                    strategy: interpretation.strategy,
-                    content: interpretation.content
-                )
+                // 解卦策略区域（使用原来的UI，不可折叠）
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("解卦策略")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    
+                    ParsedContentView(content: interpretation.strategy)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(12)
                 
-                Divider()
-                
-                // 解析后的内容显示
-                ParsedContentView(content: content)
+                // 其他可折叠内容区域（优先级排序，排除解卦策略）
+                let nonStrategySections = interpretationSections.filter { $0.title != "解卦策略" }
+                if !nonStrategySections.isEmpty {
+                    ForEach(nonStrategySections.sorted(by: { $0.priority < $1.priority })) { section in
+                        CollapsibleContentView(
+                            title: section.title,
+                            content: section.content,
+                            isExpandedByDefault: section.isExpandedByDefault
+                        )
+                    }
+                }
                 
                 // AI解卦按钮
-                if !isLoadingAI && !hasGeneratedAI && interpretation.content != "内容加载中..." {
+                if !isLoadingAI && !hasGeneratedAI && !interpretationSections.isEmpty {
                     Button(action: {
                         Task {
                             await generateAIInterpretation()
@@ -189,6 +205,7 @@ struct GuaDetailView: View {
                     .cornerRadius(12)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
         }
         .navigationTitle(guaName)
@@ -198,7 +215,7 @@ struct GuaDetailView: View {
                     Button(onSaveAndExit != nil ? "保存并退出" : "保存") {
                         saveRecord()
                     }
-                    .disabled(interpretation.content == "内容加载中..." || content == "加载中...")
+                    .disabled(interpretationSections.isEmpty || interpretation.content == "内容加载中...")
                 }
             }
         }
@@ -254,7 +271,8 @@ struct GuaDetailView: View {
         )
         
         await MainActor.run {
-            self.interpretation = result
+            self.interpretation = (strategy: result.strategy, content: result.content)
+            self.interpretationSections = result.sections
         }
     }
     
@@ -415,19 +433,6 @@ struct GuaDetailView: View {
                 changingYaoPositions: [],
                 originalYao: [7,7,7,7,7,7],
                 question: "我是否应该在年底前换工作？"
-            )
-        }
-        .tabItem {
-            Text("0变爻")
-        }
-
-        NavigationStack {
-            GuaDetailView(
-                guaName: "2. 坤为地",
-                guaURL: URL(string: "https://www.zhouyi.cc/zhouyi/yijing64/4105.html")!,
-                changingYaoPositions: [],
-                originalYao: [8,8,8,8,8,8],
-                question: "我想要投资房产是否合适？"
             )
         }
         .tabItem {
