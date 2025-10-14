@@ -224,19 +224,11 @@ struct SticksLayoutView: View {
                         Spacer()
                         HStack(spacing: 2) {
                             ForEach(0..<centerSticks, id: \.self) { _ in
-                                Rectangle()
-                                    .fill(Color.brown)
-                                    .frame(width: 10, height: 150)
-                                    .cornerRadius(3)
-                                    .shadow(radius: 2)
+                                StickView()
                             }
                             // 前两轮加上左下角那根
                             if stepCount < 3 {
-                                Rectangle()
-                                    .fill(Color.brown)
-                                    .frame(width: 10, height: 150)
-                                    .cornerRadius(3)
-                                    .shadow(radius: 2)
+                                StickView()
                             }
                         }
                         Spacer()
