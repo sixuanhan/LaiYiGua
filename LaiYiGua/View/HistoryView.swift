@@ -33,6 +33,14 @@ struct HistoryView: View {
                                     Text(record.guaName)
                                         .font(.headline)
                                         .foregroundColor(.primary)
+                                    
+                                    // AI解卦标识
+                                    if record.aiInterpretation != nil && !record.aiInterpretation!.isEmpty {
+                                        Image(systemName: "brain.head.profile")
+                                            .font(.caption)
+                                            .foregroundColor(.purple)
+                                    }
+                                    
                                     Spacer()
                                     Text(formatDate(record.date))
                                         .font(.caption)
@@ -62,14 +70,7 @@ struct HistoryView: View {
             .navigationTitle("历史记录")
             .sheet(item: $selectedRecord) { record in
                 NavigationView {
-                    GuaDetailView(
-                        guaName: record.guaName,
-                        guaURL: record.guaURL,
-                        changingYaoPositions: record.changingYaoPositions,
-                        originalYao: record.originalYao,
-                        question: record.question,
-                        showSaveButton: false
-                    )
+                    GuaDetailView(record: record, showSaveButton: false)
                 }
             }
         }

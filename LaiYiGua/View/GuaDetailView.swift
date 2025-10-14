@@ -17,6 +17,7 @@ struct GuaDetailView: View {
     @State private var aiInterpretation: String = ""
     @State private var isLoadingAI: Bool = false
     @State private var showAIInterpretation: Bool = false
+    @State private var hasGeneratedAI: Bool = false
     @EnvironmentObject private var recordManager: DivinationRecordManager
     @Environment(\.dismiss) private var dismiss
 
@@ -41,6 +42,24 @@ struct GuaDetailView: View {
         self.showSaveButton = showSaveButton
         self.onSaveAndExit = onSaveAndExit
     }
+    
+    // 用于历史记录的初始化器，包含已有的AI解卦结果
+    init(record: DivinationRecord, showSaveButton: Bool = false, onSaveAndExit: (() -> Void)? = nil) {
+        self.guaName = record.guaName
+        self.guaURL = record.guaURL
+        self.changingYaoPositions = record.changingYaoPositions
+        self.originalYao = record.originalYao
+        self.question = record.question
+        self.showSaveButton = showSaveButton
+        self.onSaveAndExit = onSaveAndExit
+        
+        // 如果历史记录中有AI解卦结果，预加载它
+        if let savedAI = record.aiInterpretation, !savedAI.isEmpty {
+            self._aiInterpretation = State(initialValue: savedAI)
+            self._showAIInterpretation = State(initialValue: true)
+            self._hasGeneratedAI = State(initialValue: true)
+        }
+    }
 
     var body: some View {
         ScrollView {
@@ -57,7 +76,7 @@ struct GuaDetailView: View {
                 ParsedContentView(content: content)
                 
                 // AI解卦按钮
-                if !isLoadingAI && interpretation.content != "内容加载中..." {
+                if !isLoadingAI && !hasGeneratedAI && interpretation.content != "内容加载中..." {
                     Button(action: {
                         Task {
                             await generateAIInterpretation()
@@ -70,6 +89,22 @@ struct GuaDetailView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(Color.purple)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                    .padding(.top)
+                } else if hasGeneratedAI && !showAIInterpretation {
+                    // 如果已经生成过AI解卦，显示查看按钮
+                    Button(action: {
+                        showAIInterpretation = true
+                    }) {
+                        HStack {
+                            Image(systemName: "eye")
+                            Text("查看AI解卦")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.gray)
                         .foregroundColor(.white)
                         .cornerRadius(8)
                     }
@@ -96,6 +131,15 @@ struct GuaDetailView: View {
                                 .font(.headline)
                                 .fontWeight(.bold)
                                 .foregroundColor(.purple)
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                showAIInterpretation = false
+                            }) {
+                                Image(systemName: "eye.slash")
+                                    .foregroundColor(.gray)
+                            }
                         }
                         
                         // 解析并显示AI回复
@@ -222,7 +266,8 @@ struct GuaDetailView: View {
             originalYao: originalYao,
             changingYaoPositions: changingYaoPositions,
             interpretation: interpretation.content,
-            strategy: interpretation.strategy
+            strategy: interpretation.strategy,
+            aiInterpretation: hasGeneratedAI ? aiInterpretation : nil
         )
         recordManager.saveRecord(record)
         
@@ -284,12 +329,14 @@ struct GuaDetailView: View {
                 self.aiInterpretation = responseText
                 self.isLoadingAI = false
                 self.showAIInterpretation = true
+                self.hasGeneratedAI = true
             }
         } catch {
             await MainActor.run {
                 self.aiInterpretation = "AI解卦出现错误：\(error.localizedDescription)"
                 self.isLoadingAI = false
                 self.showAIInterpretation = true
+                self.hasGeneratedAI = true
             }
         }
     }

@@ -15,9 +15,10 @@ struct DivinationRecord: Identifiable, Codable {
     let changingYaoPositions: [Int]
     let interpretation: String
     let strategy: String
+    let aiInterpretation: String?
     let date: Date
     
-    init(question: String, guaName: String, guaURL: URL, originalYao: [Int], changingYaoPositions: [Int], interpretation: String, strategy: String) {
+    init(question: String, guaName: String, guaURL: URL, originalYao: [Int], changingYaoPositions: [Int], interpretation: String, strategy: String, aiInterpretation: String? = nil) {
         self.question = question
         self.guaName = guaName
         self.guaURL = guaURL
@@ -25,6 +26,7 @@ struct DivinationRecord: Identifiable, Codable {
         self.changingYaoPositions = changingYaoPositions
         self.interpretation = interpretation
         self.strategy = strategy
+        self.aiInterpretation = aiInterpretation
         self.date = Date()
     }
 }
