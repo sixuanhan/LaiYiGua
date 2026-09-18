@@ -22,7 +22,7 @@ final class DivinationViewModel: ObservableObject {
 
     func setup() {
         let ai = FirebaseAI.firebaseAI(backend: .googleAI())
-        client = ai.generativeModel(modelName: "gemini-2.0-flash")
+        client = ai.generativeModel(modelName: "gemini-3.8-flash")
     }
 
     func refineQuestion() {
@@ -130,6 +130,7 @@ struct DivinationView: View {
     @StateObject private var viewModel = DivinationViewModel()
     @EnvironmentObject private var recordManager: DivinationRecordManager
     @Binding var shouldReset: Bool
+    @FocusState private var isTextFieldFocused: Bool
     
     init(shouldReset: Binding<Bool> = .constant(false)) {
         self._shouldReset = shouldReset
@@ -138,16 +139,11 @@ struct DivinationView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("开始占卜")
-                    .font(.largeTitle)
-                    .padding(.top)
-                    .padding(.leading)
-
                 Text("提出一个合适的问题")
                     .font(.title)
                     .padding(.top)
                     .padding(.leading)
-                
+
                 // 占卜问题纲领
                 VStack(alignment: .leading, spacing: 12) {
                     Text("好的占卜问题必须包含：")
@@ -178,20 +174,42 @@ struct DivinationView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .lineLimit(3...6)
                         .padding(.horizontal)
+                        .focused($isTextFieldFocused)
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("完成") {
+                                    isTextFieldFocused = false
+                                }
+                            }
+                        }
                 }
                 
-                // 修正问题按钮
-                Button(action: {
-                    viewModel.refineQuestion()
-                }) {
-                    Text("修正问题")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(viewModel.question.isEmpty ? Color.gray : Color.orange)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+                // 操作按钮：修正问题 或 直接占卜（不修正）
+                HStack(spacing: 12) {
+                    Button(action: {
+                        viewModel.refineQuestion()
+                    }) {
+                        Text("修正问题")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(viewModel.question.isEmpty ? Color.gray : Color.purple)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    .disabled(viewModel.question.isEmpty)
+
+                    NavigationLink(destination: SticksLayoutView(question: viewModel.question)
+                        .toolbar(.hidden, for: .tabBar)) {
+                        Text("直接占卜")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(viewModel.question.isEmpty ? Color.gray : Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    .disabled(viewModel.question.isEmpty)
                 }
-                .disabled(viewModel.question.isEmpty)
                 .padding(.horizontal)
                 
                 // 加载状态
@@ -248,26 +266,30 @@ struct DivinationView: View {
                             }
                             .padding(.horizontal)
                         }
-                        
-                        // 占卜按钮
-                        if !viewModel.selectedQuestion.isEmpty {
-                            NavigationLink(destination: SticksLayoutView(question: viewModel.selectedQuestion)
-                                .toolbar(.hidden, for: .tabBar)) {
-                                Text("开始占卜")
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.accentColor)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(8)
-                            }
-                            .padding(.horizontal)
-                            .padding(.top, 10)
-                        }
                     }
                 }
                 
+                // 占卜按钮
+                if !viewModel.selectedQuestion.isEmpty {
+                    NavigationLink(destination: SticksLayoutView(question: viewModel.selectedQuestion)
+                        .toolbar(.hidden, for: .tabBar)) {
+                        Text("开始占卜")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.accentColor)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 10)
+                }
+
                 Spacer(minLength: 20)
             }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            isTextFieldFocused = false
         }
         .onAppear {
             viewModel.setRecordManager(recordManager)
@@ -279,6 +301,7 @@ struct DivinationView: View {
                 viewModel.refinedQuestions = []
                 viewModel.selectedQuestion = ""
                 viewModel.duplicateWarning = nil
+                isTextFieldFocused = false
                 shouldReset = false
             }
         }

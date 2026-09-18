@@ -30,10 +30,22 @@ struct HistoryView: View {
                         ForEach(recordManager.records) { record in
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {
+                                    Spacer()
+                                    Text(formatDate(record.date))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Text(record.question)
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                    .lineLimit(2)
+
+                                HStack {
                                     Text(record.guaName)
-                                        .font(.headline)
-                                        .foregroundColor(.primary)
-                                    
+                                        .font(.body)
+                                        .foregroundColor(.secondary)
+
                                     // AI解卦标识
                                     if record.aiInterpretation != nil && !record.aiInterpretation!.isEmpty {
                                         Image(systemName: "brain.head.profile")
@@ -41,16 +53,14 @@ struct HistoryView: View {
                                             .foregroundColor(.purple)
                                     }
                                     
+                                    // 评价标识
+                                    if let rating = record.rating {
+                                        Text(rating.emoji)
+                                            .font(.caption)
+                                    }
+
                                     Spacer()
-                                    Text(formatDate(record.date))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
                                 }
-                                
-                                Text(record.question)
-                                    .font(.body)
-                                    .foregroundColor(.primary)
-                                    .lineLimit(2)
                                 
                                 Text(record.strategy)
                                     .font(.caption)

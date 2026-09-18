@@ -204,12 +204,6 @@ class InterpretationStrategy {
                     content: upperYaoContent,
                     priority: 3,
                     isExpandedByDefault: false
-                ),
-                ContentSection(
-                    title: "本卦详解",
-                    content: content,
-                    priority: 4,
-                    isExpandedByDefault: false
                 )
             ]
             
@@ -240,12 +234,6 @@ class InterpretationStrategy {
                     content: unchangedYaoContent,
                     priority: 2,
                     isExpandedByDefault: true
-                ),
-                ContentSection(
-                    title: "本卦详解",
-                    content: content,
-                    priority: 3,
-                    isExpandedByDefault: false
                 )
             ]
             
@@ -272,12 +260,6 @@ class InterpretationStrategy {
                         content: "[待添加\(useNine)具体内容]",
                         priority: 2,
                         isExpandedByDefault: true
-                    ),
-                    ContentSection(
-                        title: "本卦详解",
-                        content: content,
-                        priority: 3,
-                        isExpandedByDefault: false
                     )
                 ]
                 return (
@@ -302,12 +284,6 @@ class InterpretationStrategy {
                         content: changedGuaContent,
                         priority: 2,
                         isExpandedByDefault: true
-                    ),
-                    ContentSection(
-                        title: "本卦详解",
-                        content: content,
-                        priority: 3,
-                        isExpandedByDefault: false
                     )
                 ]
                 

@@ -8,7 +8,7 @@ struct ParsedContentView: View {
             ForEach(parseMainContent(content), id: \.id) { item in
                 if item.isTitle {
                     Text(item.text)
-                        .font(.title2)
+                        .font(.subheadline)
                         .fontWeight(.bold)
                         .padding(.top, 8)
                         .frame(maxWidth: .infinity, alignment: .leading)

@@ -6,6 +6,20 @@
 
 import Foundation
 
+enum DivinationRating: String, CaseIterable, Codable {
+    case excellent = "神了"
+    case average = "一般"
+    case poor = "差评"
+
+    var emoji: String {
+        switch self {
+        case .excellent: return "🎯"
+        case .average: return "👍"
+        case .poor: return "👎"
+        }
+    }
+}
+
 struct DivinationRecord: Identifiable, Codable {
     let id = UUID()
     let question: String
@@ -17,7 +31,9 @@ struct DivinationRecord: Identifiable, Codable {
     let strategy: String
     let aiInterpretation: String?
     let date: Date
-    
+    var postEventRecord: String? // 事后记录
+    var rating: DivinationRating? // 评价
+
     init(question: String, guaName: String, guaURL: URL, originalYao: [Int], changingYaoPositions: [Int], interpretation: String, strategy: String, aiInterpretation: String? = nil) {
         self.question = question
         self.guaName = guaName
@@ -46,6 +62,17 @@ class DivinationRecordManager: ObservableObject {
         saveRecords()
     }
     
+    func updatePostEventRecord(recordId: UUID, postEventRecord: String?, rating: DivinationRating?) {
+        if let index = records.firstIndex(where: { $0.id == recordId }) {
+            var updatedRecord = records[index]
+            updatedRecord.postEventRecord = postEventRecord
+            updatedRecord.rating = rating
+            records[index] = updatedRecord
+            print("📝 更新事后记录: \(updatedRecord.guaName) - 评价: \(rating?.rawValue ?? "无")")
+            saveRecords()
+        }
+    }
+
     func deleteRecord(at index: Int) {
         guard index < records.count else {
             print("❌ 删除记录失败: 索引 \(index) 超出范围")

@@ -306,7 +306,7 @@ struct GuaDetailView: View {
         
         do {
             let ai = FirebaseAI.firebaseAI(backend: .googleAI())
-            let client = ai.generativeModel(modelName: "gemini-2.0-flash")
+            let client = ai.generativeModel(modelName: "gemini-3.8-flash")
             
             // 生成卦相描述
             let guaDescription = generateGuaDescription()

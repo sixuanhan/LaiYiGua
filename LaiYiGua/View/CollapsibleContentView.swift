@@ -23,7 +23,7 @@ struct CollapsibleContentView: View {
             }) {
                 HStack {
                     Text(title)
-                        .font(.title3)
+                        .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
                     
