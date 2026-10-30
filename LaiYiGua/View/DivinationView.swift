@@ -1,7 +1,6 @@
 //  DivinationView.swift
 //  LaiYiGua
 import SwiftUI
-import FirebaseAI
 
 final class DivinationViewModel: ObservableObject {
     @Published var question: String = ""
@@ -9,7 +8,6 @@ final class DivinationViewModel: ObservableObject {
     @Published var selectedQuestion: String = ""
     @Published var isLoading: Bool = false
     @Published var duplicateWarning: String? = nil
-    private var client: GenerativeModel?
     private var recordManager: DivinationRecordManager?
 
     init() {
@@ -21,15 +19,9 @@ final class DivinationViewModel: ObservableObject {
     }
 
     func setup() {
-        let ai = FirebaseAI.firebaseAI(backend: .googleAI())
-        client = ai.generativeModel(modelName: "gemini-3.8-flash")
     }
 
     func refineQuestion() {
-        guard let client = client else {
-            refinedQuestions = ["Error: Gemini client not initialized"]
-            return
-        }
         isLoading = true
         duplicateWarning = nil
         
@@ -68,8 +60,7 @@ final class DivinationViewModel: ObservableObject {
         """
         Task {
             do {
-                let response = try await client.generateContent(prompt)
-                let responseText = response.text ?? "未获得有效回复"
+                let responseText = try await AIService.generateContent(prompt)
                 let (questions, warning) = parseRefinedQuestions(from: responseText)
                 DispatchQueue.main.async {
                     self.refinedQuestions = questions

@@ -88,7 +88,8 @@ struct HistoryView: View {
     
     private func deleteRecords(at offsets: IndexSet) {
         for index in offsets {
-            recordManager.deleteRecord(at: index)
+            let record = recordManager.records[index]
+            recordManager.deleteRecord(id: record.id)
         }
     }
     

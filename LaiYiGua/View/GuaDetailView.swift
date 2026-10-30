@@ -1,5 +1,4 @@
 import SwiftUI
-import FirebaseAI
 
 struct GuaDetailView: View {
     let guaName: String
@@ -19,6 +18,10 @@ struct GuaDetailView: View {
     @State private var isLoadingAI: Bool = false
     @State private var showAIInterpretation: Bool = false
     @State private var hasGeneratedAI: Bool = false
+    @State private var selectedRating: DivinationRating?
+    @State private var postEventRecord: String = ""
+    private let recordId: UUID?
+    private let initialDate: Date?
     @EnvironmentObject private var recordManager: DivinationRecordManager
     @Environment(\.dismiss) private var dismiss
 
@@ -31,6 +34,8 @@ struct GuaDetailView: View {
         self.question = question
         self.showSaveButton = true
         self.onSaveAndExit = onSaveAndExit
+        self.recordId = nil
+        self.initialDate = nil
     }
     
     // 完整初始化器，用于历史记录（可选择是否显示保存按钮）
@@ -42,6 +47,8 @@ struct GuaDetailView: View {
         self.question = question
         self.showSaveButton = showSaveButton
         self.onSaveAndExit = onSaveAndExit
+        self.recordId = nil
+        self.initialDate = nil
     }
     
     // 用于历史记录的初始化器，包含已有的AI解卦结果
@@ -53,8 +60,13 @@ struct GuaDetailView: View {
         self.question = record.question
         self.showSaveButton = showSaveButton
         self.onSaveAndExit = onSaveAndExit
-        
-        // 如果历史记录中有AI解卦结果，预加载它
+        self.recordId = record.id
+        self.initialDate = record.date
+
+        self._selectedRating = State(initialValue: record.rating)
+        self._postEventRecord = State(initialValue: record.postEventRecord ?? "")
+
+        // 如果历史记录中有AI解卦结果，预加载它，并自动展示
         if let savedAI = record.aiInterpretation, !savedAI.isEmpty {
             self._aiInterpretation = State(initialValue: savedAI)
             self._showAIInterpretation = State(initialValue: true)
@@ -110,17 +122,22 @@ struct GuaDetailView: View {
                     }
                     .padding(.top)
                 } else if hasGeneratedAI && !showAIInterpretation {
-                    // 如果已经生成过AI解卦，显示查看按钮
                     Button(action: {
-                        showAIInterpretation = true
+                        if aiInterpretation.contains("AI解卦出现错误：") {
+                            Task {
+                                await generateAIInterpretation()
+                            }
+                        } else {
+                            showAIInterpretation = true
+                        }
                     }) {
                         HStack {
-                            Image(systemName: "eye")
-                            Text("查看AI解卦")
+                            Image(systemName: aiInterpretation.contains("AI解卦出现错误：") ? "arrow.clockwise" : "eye")
+                            Text(aiInterpretation.contains("AI解卦出现错误：") ? "重新AI解卦" : "查看AI解卦")
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.gray)
+                        .background(aiInterpretation.contains("AI解卦出现错误：") ? Color.orange : Color.gray)
                         .foregroundColor(.white)
                         .cornerRadius(8)
                     }
@@ -134,6 +151,45 @@ struct GuaDetailView: View {
                         .padding()
                 }
                 
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("事后记录与评价")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+
+                    HStack(spacing: 12) {
+                        ForEach(DivinationRating.allCases, id: \.rawValue) { rating in
+                            Button(action: {
+                                selectedRating = rating
+                                if let recordId {
+                                    recordManager.updatePostEventRecord(recordId: recordId, postEventRecord: postEventRecord, rating: selectedRating)
+                                }
+                            }) {
+                                Text(rating.emoji)
+                                    .font(.title2)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 12)
+                                    .frame(minWidth: 52)
+                                    .background(selectedRating == rating ? Color.blue.opacity(0.2) : Color.gray.opacity(0.12))
+                                    .foregroundColor(.primary)
+                                    .cornerRadius(10)
+                            }
+                        }
+                    }
+
+                    TextField("写下这次占卜的事后感受、实际结果或提醒", text: $postEventRecord, axis: .vertical)
+                        .textFieldStyle(.roundedBorder)
+                        .lineLimit(3...6)
+                        .onChange(of: postEventRecord) { newValue in
+                            if let recordId {
+                                recordManager.updatePostEventRecord(recordId: recordId, postEventRecord: newValue, rating: selectedRating)
+                            }
+                        }
+                }
+                .padding()
+                .background(Color.gray.opacity(0.06))
+                .cornerRadius(12)
+
                 // AI解卦结果
                 if showAIInterpretation && !aiInterpretation.isEmpty {
                     Divider()
@@ -285,7 +341,11 @@ struct GuaDetailView: View {
             changingYaoPositions: changingYaoPositions,
             interpretation: interpretation.content,
             strategy: interpretation.strategy,
-            aiInterpretation: hasGeneratedAI ? aiInterpretation : nil
+            aiInterpretation: hasGeneratedAI ? aiInterpretation : nil,
+            rating: selectedRating,
+            postEventRecord: postEventRecord.isEmpty ? nil : postEventRecord,
+            id: recordId ?? UUID(),
+            date: initialDate ?? Date()
         )
         recordManager.saveRecord(record)
         
@@ -305,9 +365,6 @@ struct GuaDetailView: View {
         }
         
         do {
-            let ai = FirebaseAI.firebaseAI(backend: .googleAI())
-            let client = ai.generativeModel(modelName: "gemini-3.8-flash")
-            
             // 生成卦相描述
             let guaDescription = generateGuaDescription()
             
@@ -340,8 +397,7 @@ struct GuaDetailView: View {
             注意：不要在回复中使用markdown格式符号（如**、#等）。
             """
             
-            let response = try await client.generateContent(prompt)
-            let responseText = response.text ?? "AI解卦暂时无法生成，请稍后再试。"
+            let responseText = try await AIService.generateContent(prompt)
             
             await MainActor.run {
                 self.aiInterpretation = responseText
@@ -349,12 +405,21 @@ struct GuaDetailView: View {
                 self.showAIInterpretation = true
                 self.hasGeneratedAI = true
             }
+
+            if let recordId {
+                recordManager.updateAIInterpretation(recordId: recordId, aiInterpretation: responseText)
+            }
         } catch {
+            let errorText = "AI解卦出现错误：\(error.localizedDescription)"
             await MainActor.run {
-                self.aiInterpretation = "AI解卦出现错误：\(error.localizedDescription)"
+                self.aiInterpretation = errorText
                 self.isLoadingAI = false
                 self.showAIInterpretation = true
                 self.hasGeneratedAI = true
+            }
+
+            if let recordId {
+                recordManager.updateAIInterpretation(recordId: recordId, aiInterpretation: errorText)
             }
         }
     }

@@ -25,7 +25,7 @@ struct ContentView: View {
                 Label("占卜", systemImage: "sparkles")
             }
             .tag(0)
-            
+
             NavigationView {
                 HistoryView()
             }

@@ -21,20 +21,21 @@ enum DivinationRating: String, CaseIterable, Codable {
 }
 
 struct DivinationRecord: Identifiable, Codable {
-    let id = UUID()
-    let question: String
-    let guaName: String
-    let guaURL: URL
-    let originalYao: [Int]
-    let changingYaoPositions: [Int]
-    let interpretation: String
-    let strategy: String
-    let aiInterpretation: String?
-    let date: Date
+    var id: UUID
+    var question: String
+    var guaName: String
+    var guaURL: URL
+    var originalYao: [Int]
+    var changingYaoPositions: [Int]
+    var interpretation: String
+    var strategy: String
+    var aiInterpretation: String?
+    var date: Date
     var postEventRecord: String? // 事后记录
     var rating: DivinationRating? // 评价
 
-    init(question: String, guaName: String, guaURL: URL, originalYao: [Int], changingYaoPositions: [Int], interpretation: String, strategy: String, aiInterpretation: String? = nil) {
+    init(question: String, guaName: String, guaURL: URL, originalYao: [Int], changingYaoPositions: [Int], interpretation: String, strategy: String, aiInterpretation: String? = nil, rating: DivinationRating? = nil, postEventRecord: String? = nil, id: UUID = UUID(), date: Date = Date()) {
+        self.id = id
         self.question = question
         self.guaName = guaName
         self.guaURL = guaURL
@@ -43,7 +44,19 @@ struct DivinationRecord: Identifiable, Codable {
         self.interpretation = interpretation
         self.strategy = strategy
         self.aiInterpretation = aiInterpretation
-        self.date = Date()
+        self.date = date
+        self.rating = rating
+        self.postEventRecord = postEventRecord
+    }
+
+    var hasAIResult: Bool {
+        guard let aiInterpretation else { return false }
+        return !aiInterpretation.isEmpty
+    }
+
+    var aiFailed: Bool {
+        guard let aiInterpretation else { return false }
+        return aiInterpretation.contains("AI解卦出现错误：")
     }
 }
 
@@ -57,8 +70,26 @@ class DivinationRecordManager: ObservableObject {
     }
     
     func saveRecord(_ record: DivinationRecord) {
-        records.insert(record, at: 0) // 新记录放在最前面
-        print("💾 添加新的占卜记录: \(record.guaName) - \(record.question)")
+        if let existingIndex = records.firstIndex(where: { $0.id == record.id }) {
+            records[existingIndex] = record
+            print("💾 更新已存在的占卜记录: \(record.guaName) - \(record.question)")
+        } else {
+            records.insert(record, at: 0) // 新记录放在最前面
+            print("💾 添加新的占卜记录: \(record.guaName) - \(record.question)")
+        }
+        saveRecords()
+    }
+
+    func updateAIInterpretation(recordId: UUID, aiInterpretation: String?) {
+        guard let index = records.firstIndex(where: { $0.id == recordId }) else {
+            print("❌ 更新AI解卦失败: 未找到记录 ID \(recordId)")
+            return
+        }
+
+        var updatedRecord = records[index]
+        updatedRecord.aiInterpretation = aiInterpretation
+        records[index] = updatedRecord
+        print("🧠 更新AI解卦结果: \(updatedRecord.guaName) - \(updatedRecord.question)")
         saveRecords()
     }
     
@@ -82,6 +113,14 @@ class DivinationRecordManager: ObservableObject {
         records.remove(at: index)
         print("🗑️ 删除占卜记录: \(deletedRecord.guaName) - \(deletedRecord.question)")
         saveRecords()
+    }
+
+    func deleteRecord(id: UUID) {
+        guard let index = records.firstIndex(where: { $0.id == id }) else {
+            print("❌ 删除记录失败: 未找到记录 ID \(id)")
+            return
+        }
+        deleteRecord(at: index)
     }
     
     func clearAllRecords() {
